@@ -43,7 +43,7 @@ function Sidebar({ sessions, activeSessionId, activeTool, madhhab, prayerTimes, 
       {/* Brand */}
       <div className="flex items-center justify-between px-4 py-5 border-b border-[rgba(212,168,67,0.12)] bg-[#0a0f1a]/80">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-yellow-600 flex items-center justify-center text-sm font-bold text-[#0a0f1a] shadow-lg gold-glow font-arabic">
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-400 to-yellow-600 flex items-center justify-center text-sm font-bold text-[#0a0f1a] shadow-lg gold-glow font-arabic">
             ر
           </div>
           <div>
@@ -200,11 +200,11 @@ function WelcomeScreen({ onPrompt }: { onPrompt: (p: string) => void }) {
   ];
   return (
     <div className="flex flex-col items-center justify-center h-full px-4 pb-32 text-center">
-      <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-400 to-yellow-600 flex items-center justify-center text-4xl font-bold text-[#0a0f1a] shadow-2xl mb-6 gold-glow font-arabic">
+      <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-400 to-yellow-600 flex items-center justify-center text-4xl font-bold text-[#0a0f1a] shadow-2xl mb-4 gold-glow font-arabic">
         ر
       </div>
-      <h2 className="text-2xl font-bold text-[#f5f0e8] mb-1 font-arabic">بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيْم</h2>
-      <p className="text-amber-500/60 text-xs mb-4">In the name of Allah, the Most Gracious, the Most Merciful</p>
+      <h1 className="text-3xl font-bold text-[#f5f0e8] mb-2">Rukaya AI</h1>
+      <h2 className="text-lg font-bold text-amber-500/80 mb-6 font-arabic">بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيْم</h2>
       <p className="text-[#7a6a50] text-sm mb-8 max-w-sm">
         Your Islamic scholarly companion, grounded in authentic Quran & Sunnah
       </p>
