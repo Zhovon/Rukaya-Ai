@@ -1,0 +1,10 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24" />
+      <stop offset="100%" stop-color="#ca8a04" />
+    </linearGradient>
+  </defs>
+  <circle cx="256" cy="256" r="256" fill="url(#gold)" />
+  <text x="256" y="256" dy=".2em" text-anchor="middle" dominant-baseline="central" font-family="'Amiri', 'Traditional Arabic', serif" font-weight="bold" font-size="240" fill="#0a0f1a">ر</text>
+</svg>
