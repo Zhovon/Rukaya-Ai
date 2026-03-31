@@ -1,0 +1,63 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Amiri:ital,wght@0,400;0,700;1,400&display=swap');
+@import "tailwindcss";
+
+:root {
+  /* Islamic Deep Navy + Gold palette */
+  --bg-deep:    #07091200;
+  --bg-base:    #080c16;
+  --bg-surface: #0c1220;
+  --bg-raised:  #101828;
+
+  --gold-bright: #f0c040;
+  --gold-mid:    #d4a843;
+  --gold-muted:  #92690d;
+  --gold-glow:   rgba(212, 168, 67, 0.25);
+
+  --islamic-green:      #14532d;
+  --islamic-green-mid:  #15803d;
+  --islamic-green-glow: rgba(21, 128, 61, 0.2);
+
+  --border-gold:  rgba(212, 168, 67, 0.15);
+  --border-muted: rgba(255, 255, 255, 0.06);
+
+  --text-primary:   #f5f0e8;   /* warm cream */
+  --text-secondary: #a09070;
+  --text-muted:     #4a4030;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Arabic text class */
+.font-arabic {
+  font-family: 'Amiri', 'Traditional Arabic', serif;
+  font-size: 1.1em;
+  line-height: 2;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-gold); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--gold-muted); }
+
+/* Geometric star pattern for backgrounds */
+.islamic-pattern {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cpath d='M30 5 l5 10 l11 0 l-9 7 l4 11 l-11-7 l-11 7 l4-11 l-9-7 l11 0z' fill='none' stroke='rgba(212,168,67,0.06)' stroke-width='1'/%3E%3C/svg%3E");
+  background-size: 60px 60px;
+}
+
+/* Gold shimmer animation on brand */
+@keyframes gold-pulse {
+  0%, 100% { box-shadow: 0 0 12px var(--gold-glow); }
+  50%       { box-shadow: 0 0 24px var(--gold-glow), 0 0 48px rgba(212,168,67,0.1); }
+}
+.gold-glow { animation: gold-pulse 3s ease-in-out infinite; }
