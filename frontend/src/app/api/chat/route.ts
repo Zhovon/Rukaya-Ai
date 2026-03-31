@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     body: JSON.stringify({
       model: MODEL,
       messages: [{ role: 'system', content: system }, ...messages],
-      temperature: 0.4, max_tokens: 8192,
+      temperature: 0.4, max_tokens: 2048,
     }),
   });
 

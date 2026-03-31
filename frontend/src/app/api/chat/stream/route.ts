@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
             model: MODEL,
             messages: groqMessages,
             temperature: 0.4,
-            max_tokens: 8192,
+            max_tokens: 2048,
             stream: true,
           }),
         });
