@@ -1,5 +1,12 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
+
+export const viewport: Viewport = {
+  themeColor: "#080c16",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
 
 export const metadata: Metadata = {
   title: "Rukaya AI — Islamic Scholarly Companion",
@@ -22,7 +29,6 @@ export const metadata: Metadata = {
     description: "Authentic Islamic guidance powered by Quran, Hadith & classical Fiqh.",
   },
   robots: { index: true, follow: true },
-  themeColor: "#080c16",
 };
 
 export default function RootLayout({
@@ -33,7 +39,6 @@ export default function RootLayout({
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
       </head>
       <body className="min-h-full flex flex-col antialiased">{children}</body>
     </html>
