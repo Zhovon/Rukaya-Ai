@@ -108,7 +108,7 @@ function Sidebar({ sessions, activeSessionId, activeTool, madhhab, prayerTimes, 
   return (
     <aside className="flex flex-col h-full w-72 bg-surface text-primary border-r border-slate-200 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-100 islamic-pattern">
       {/* Brand & Lang Toggle */}
-      <div className="flex items-center justify-between px-4 py-5 border-b border-slate-100 dark:border-slate-800 bg-surface/90 dark:bg-slate-900/90 backdrop-blur-sm">
+      <div className="flex items-center justify-between px-4 py-5 border-b border-slate-100 dark:border-slate-800 bg-surface dark:bg-slate-900">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-sm font-bold text-white shadow-lg shadow-emerald-500/20 font-arabic">
             ر
@@ -396,7 +396,7 @@ export default function RukayaApp() {
       <div className="flex-1 flex flex-col min-w-0 bg-base dark:bg-slate-950 relative">
 
         {/* Mobile Top Bar */}
-        <div className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-800 bg-surface/90 dark:bg-slate-900/90 backdrop-blur-md sticky top-0 z-20 shadow-sm">
+        <div className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-800 bg-surface dark:bg-slate-900 sticky top-0 z-20 shadow-sm">
           <button onClick={() => setSidebarOpen(true)} className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 p-1">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
           </button>
@@ -501,7 +501,7 @@ export default function RukayaApp() {
             </div>
 
             {/* Input Bar */}
-            <div className="flex-none px-3 sm:px-4 pb-[calc(env(safe-area-inset-bottom)+76px)] lg:pb-6 pt-2 bg-gradient-to-t from-base via-base to-transparent dark:from-slate-950 dark:via-slate-950 absolute bottom-0 inset-x-0 lg:static z-20">
+            <div className="flex-none px-3 sm:px-4 pb-[calc(env(safe-area-inset-bottom)+76px)] lg:pb-6 pt-3 bg-white dark:bg-slate-950 z-20 border-t border-slate-100 dark:border-slate-900 w-full relative">
               <div className="max-w-3xl mx-auto">
                 <div className="relative flex items-end gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 shadow-lg focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 transition-all duration-200">
                   <textarea
@@ -536,7 +536,7 @@ export default function RukayaApp() {
         )}
 
         {/* Mobile Bottom Nav */}
-        <nav className="lg:hidden fixed bottom-0 inset-x-0 bg-white/90 dark:bg-slate-900/95 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]"
+        <nav className="lg:hidden fixed bottom-0 inset-x-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]"
           style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
           <div className="flex">
             {([

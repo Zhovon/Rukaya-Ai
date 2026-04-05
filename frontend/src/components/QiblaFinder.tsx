@@ -42,6 +42,7 @@ export default function QiblaFinder({ lang = "en" }: { lang?: "en" | "bn" }) {
   const [compassHeading, setCompassHeading] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [needsPermission, setNeedsPermission] = useState(false);
 
   const dict = t[lang];
 
@@ -73,21 +74,45 @@ export default function QiblaFinder({ lang = "en" }: { lang?: "en" | "bn" }) {
       }
     );
 
-    // Listen for device compass if available
-    const handleOrientation = (e: DeviceOrientationEvent) => {
-      const heading = (e as unknown as { webkitCompassHeading?: number }).webkitCompassHeading
-        ?? (e.alpha != null ? 360 - e.alpha : 0);
-      setCompassHeading(heading);
-    };
+    // Check if iOS 13+ device orientation permission is needed
+    if (typeof (DeviceOrientationEvent as any)?.requestPermission === 'function') {
+      setNeedsPermission(true);
+    } else {
+      initCompassListeners();
+    }
 
+    return () => removeCompassListeners();
+  }, [dict]);
+
+  const handleOrientation = (e: DeviceOrientationEvent) => {
+    const heading = (e as unknown as { webkitCompassHeading?: number }).webkitCompassHeading
+      ?? (e.alpha != null ? 360 - e.alpha : 0);
+    setCompassHeading(heading);
+  };
+
+  const initCompassListeners = () => {
     window.addEventListener("deviceorientationabsolute" as keyof WindowEventMap, handleOrientation as EventListener);
     window.addEventListener("deviceorientation", handleOrientation);
+  };
 
-    return () => {
-      window.removeEventListener("deviceorientationabsolute" as keyof WindowEventMap, handleOrientation as EventListener);
-      window.removeEventListener("deviceorientation", handleOrientation);
-    };
-  }, [dict]);
+  const removeCompassListeners = () => {
+    window.removeEventListener("deviceorientationabsolute" as keyof WindowEventMap, handleOrientation as EventListener);
+    window.removeEventListener("deviceorientation", handleOrientation);
+  };
+
+  const requestCompassPermission = async () => {
+    try {
+      const permission = await (DeviceOrientationEvent as any).requestPermission();
+      if (permission === 'granted') {
+        setNeedsPermission(false);
+        initCompassListeners();
+      } else {
+        setError(lang === "bn" ? "কম্পাসের অনুমতি দেওয়া হয়নি।" : "Compass permission denied.");
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const needleAngle = bearing != null ? bearing - compassHeading : 0;
 
@@ -113,8 +138,22 @@ export default function QiblaFinder({ lang = "en" }: { lang?: "en" | "bn" }) {
 
       {bearing != null && (
         <>
+          {needsPermission && (
+            <div className="w-full text-center p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700/30 rounded-2xl mb-2">
+              <p className="text-sm text-slate-700 dark:text-slate-300 mb-3">
+                {lang === "bn" ? "কম্পাস সেন্সর সক্রিয় করতে অনুমতি প্রয়োজন।" : "Compass sensor permission is required."}
+              </p>
+              <button
+                onClick={requestCompassPermission}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-medium text-sm transition-colors shadow-sm"
+              >
+                {lang === "bn" ? "কম্পাস চালু করুন" : "Enable Compass"}
+              </button>
+            </div>
+          )}
+
           {/* Compass */}
-          <div className="relative w-64 h-64 mt-4 mb-4">
+          <div className={`relative w-64 h-64 mt-4 mb-4 transition-opacity duration-300 ${needsPermission ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}>
             {/* Compass ring */}
             <div className="absolute inset-0 rounded-full border-4 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 shadow-2xl flex items-center justify-center">
               {/* Cardinal directions */}

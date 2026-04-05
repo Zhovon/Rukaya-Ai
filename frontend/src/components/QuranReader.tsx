@@ -19,9 +19,21 @@ type Surah = {
   };
 };
 
+const RECITERS = [
+  { id: 7, name: "Mishary Al-Afasy" },
+  { id: 1, name: "AbdulBaset AbdulSamad" },
+  { id: 3, name: "Abdur-Rahman as-Sudais" },
+  { id: 4, name: "Abu Bakr al-Shatri" },
+  { id: 5, name: "Hani ar-Rifai" },
+  { id: 12, name: "Mahmoud Al-Husary" },
+  { id: 11, name: "Mohamed al-Tablawi" },
+  { id: 10, name: "Saud ash-Shuraym" },
+];
+
 export default function QuranReader({ lang = "en" }: { lang?: "en" | "bn" }) {
   const [surahs, setSurahs] = useState<Surah[]>([]);
   const [selectedSurah, setSelectedSurah] = useState<number>(1);
+  const [reciterId, setReciterId] = useState<number>(7);
   const [verses, setVerses] = useState<Verse[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [playingId, setPlayingId] = useState<string | null>(null);
@@ -46,8 +58,8 @@ export default function QuranReader({ lang = "en" }: { lang?: "en" | "bn" }) {
       .then(res => res.json())
       .then(async (data) => {
         const versesData = data.verses || [];
-        // Fetch audio for these verses (Mishary Alafasy = 7)
-        const audioRes = await fetch(`https://api.quran.com/api/v4/recitations/7/by_chapter/${selectedSurah}?per_page=300`);
+        // Fetch audio for these verses
+        const audioRes = await fetch(`https://api.quran.com/api/v4/recitations/${reciterId}/by_chapter/${selectedSurah}?per_page=300`);
         const audioData = await audioRes.json();
         const audios = audioData.audio_files || [];
         
@@ -66,7 +78,7 @@ export default function QuranReader({ lang = "en" }: { lang?: "en" | "bn" }) {
         console.error(e);
         setIsLoading(false);
       });
-  }, [selectedSurah, lang]);
+  }, [selectedSurah, lang, reciterId]);
 
   const toggleAudio = (verse: Verse) => {
     if (!verse.audio_url) return;
@@ -106,15 +118,27 @@ export default function QuranReader({ lang = "en" }: { lang?: "en" | "bn" }) {
         <h2 className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mb-4 flex items-center gap-2">
           📖 {lang === "bn" ? "কুরআন মাজীদ" : "The Noble Quran"}
         </h2>
-        <div className="flex items-center gap-3 w-full">
+        <div className="flex flex-col sm:flex-row gap-3 w-full">
           <select
             value={selectedSurah}
             onChange={(e) => setSelectedSurah(Number(e.target.value))}
-            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl px-3 py-3 focus:outline-none focus:border-emerald-500 font-medium text-sm sm:text-base break-words whitespace-normal"
+            className="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl px-3 py-3 focus:outline-none focus:border-emerald-500 font-medium text-sm sm:text-base break-words whitespace-normal"
           >
             {surahs.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.id}. {s.name_simple} ({s.translated_name.name})
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={reciterId}
+            onChange={(e) => setReciterId(Number(e.target.value))}
+            className="w-full sm:w-64 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl px-3 py-3 focus:outline-none focus:border-emerald-500 font-medium text-sm sm:text-base"
+          >
+            {RECITERS.map((r) => (
+              <option key={r.id} value={r.id}>
+                🎙️ {r.name}
               </option>
             ))}
           </select>
