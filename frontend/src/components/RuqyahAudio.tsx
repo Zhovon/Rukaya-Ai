@@ -97,6 +97,15 @@ export default function RuqyahAudio({ lang = "en" }: { lang?: "en" | "bn" }) {
     const audio = new Audio(track.urls[vIndex]);
     audioRef.current = audio;
 
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: track.name[lang] || track.name.en,
+        artist: "Mishary Al-Afasy (Ruqyah)",
+        album: "Rukaya AI Spiritual",
+        artwork: [{ src: 'https://images.unsplash.com/photo-1606105961732-6332674f4eea?q=80&w=512&auto=format&fit=crop', sizes: '512x512', type: 'image/jpeg' }]
+      });
+    }
+
     audio.ontimeupdate = () => {
       setProgress((p) => ({ ...p, [track.id]: (audio.currentTime / audio.duration) * 100 || 0 }));
     };

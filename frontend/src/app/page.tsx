@@ -225,6 +225,8 @@ export default function RukayaApp() {
   const [error, setError]             = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [lang, setLang]               = useState<Lang>("en");
+  const [dailyHadiths, setDailyHadiths] = useState<any[] | null>(null);
+  const [showHadithModal, setShowHadithModal] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef    = useRef<HTMLTextAreaElement>(null);
@@ -239,8 +241,29 @@ export default function RukayaApp() {
     try { 
       const r = localStorage.getItem(SESSIONS_KEY); if (r) setSessions(JSON.parse(r)); 
       const l = localStorage.getItem(LANG_KEY) as Lang; if (l && (l==="en"||l==="bn")) setLang(l);
+
+      // Check daily hadith
+      const today = new Date().toISOString().split('T')[0];
+      const lastSeen = localStorage.getItem("rukaya_hadith_date");
+      if (lastSeen !== today) {
+        fetch('/api/daily-hadith')
+          .then(res => res.json())
+          .then(data => {
+            if (data.hadiths) {
+              setDailyHadiths(data.hadiths);
+              setShowHadithModal(true);
+            }
+          })
+          .catch(console.error);
+      }
     } catch {}
   }, []);
+
+  const closeHadithModal = () => {
+    const today = new Date().toISOString().split('T')[0];
+    localStorage.setItem("rukaya_hadith_date", today);
+    setShowHadithModal(false);
+  };
 
   const saveSessions = useCallback((updated: Session[]) => {
     setSessions(updated);
@@ -409,6 +432,33 @@ export default function RukayaApp() {
 
   return (
     <div className="flex h-[100dvh] bg-slate-50 text-slate-900 overflow-hidden selection:bg-emerald-200 dark:selection:bg-emerald-900">
+
+      {/* Daily Hadith Modal */}
+      {showHadithModal && dailyHadiths && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={closeHadithModal} />
+          <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl shadow-2xl p-6 sm:p-8 max-h-[90vh] overflow-y-auto border border-emerald-100 dark:border-emerald-900/50">
+            <h2 className="text-2xl font-bold text-center text-emerald-700 dark:text-emerald-400 mb-6 font-arabic tracking-wide flex items-center justify-center gap-2">
+              <span className="text-3xl">✨</span> {lang === "bn" ? "আজকের হাদিস" : "Daily Hadiths"} <span className="text-3xl">✨</span>
+            </h2>
+            
+            <div className="space-y-6">
+              {dailyHadiths.map((h, i) => (
+                <div key={i} className="bg-emerald-50/50 dark:bg-emerald-950/20 p-5 rounded-2xl border border-emerald-100 dark:border-emerald-900/30 shadow-sm relative">
+                  <span className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shadow-md">{i + 1}</span>
+                  <p className="text-xl font-arabic text-emerald-800 dark:text-emerald-300 leading-loose text-center mb-4 mt-2" dir="rtl">{h.arabic}</p>
+                  <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 leading-relaxed"><strong>{lang === "bn" ? "অনুবাদ:" : "Translation:"}</strong> {lang === "bn" ? h.bengali : h.english}</p>
+                  <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-500 uppercase tracking-widest text-right border-t border-emerald-100 dark:border-emerald-900/50 pt-2 mt-3 flex justify-end items-center gap-1.5"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>{h.source}</p>
+                </div>
+              ))}
+            </div>
+
+            <button onClick={closeHadithModal} className="mt-8 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl transition-all shadow-md active:scale-95 text-sm uppercase tracking-wider">
+              {lang === "bn" ? "বিসমিল্লাহ, শুরু করুন" : "Bismillah, Let's Begin"}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (

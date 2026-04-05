@@ -90,6 +90,18 @@ export default function QuranReader({ lang = "en" }: { lang?: "en" | "bn" }) {
       audioRef.current?.pause();
       const audio = new Audio(verse.audio_url);
       audioRef.current = audio;
+
+      if ('mediaSession' in navigator) {
+        const currentSurah = surahs.find(s => s.id === selectedSurah);
+        const currentReciter = RECITERS.find(r => r.id === reciterId);
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: `${currentSurah?.name_simple || "Quran"} - Verse ${verse.verse_key}`,
+          artist: currentReciter?.name || "Rukaya AI Audio",
+          album: "The Noble Quran",
+          artwork: [{ src: 'https://images.unsplash.com/photo-1606105961732-6332674f4eea?q=80&w=512&auto=format&fit=crop', sizes: '512x512', type: 'image/jpeg' }]
+        });
+      }
+
       audio.onended = () => {
         // Auto play next
         const currentIndex = verses.findIndex(v => v.verse_key === verse.verse_key);
