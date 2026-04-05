@@ -1,14 +1,8 @@
-import dynamic from 'next/dynamic';
+import MapWrapper from '@/components/MapWrapper';
 
 export const metadata = {
   title: "Live Locations | Rukaya AI",
 };
-
-// Next.js dynamic import ensures Leaflet doesn't try to access `window` on the server build
-const MapNoSSR = dynamic(() => import('@/components/AdminMap'), {
-  ssr: false,
-  loading: () => <div className="flex h-full w-full items-center justify-center text-emerald-500 font-medium">Loading Map Coordinates...</div>
-});
 
 export default async function AdminMapPage({
   searchParams,
@@ -44,7 +38,7 @@ export default async function AdminMapPage({
       </header>
       
       <main className="flex-1 w-full bg-slate-800 relative z-0">
-        <MapNoSSR />
+        <MapWrapper />
       </main>
     </div>
   );
