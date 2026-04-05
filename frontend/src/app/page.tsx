@@ -103,6 +103,7 @@ function Sidebar({ sessions, activeSessionId, activeTool, madhhab, prayerTimes, 
     { id: "ruqyah", emoji: "🎧", label: dict.toolRuqyah },
     { id: "qibla",  emoji: "🧭", label: dict.toolQibla  },
     { id: "zakat",  emoji: "⚖️", label: dict.toolZakat  },
+    { id: "verifier", emoji: "🔍", label: lang === "bn" ? "হাদিস যাচাই" : "Hadith Verifier" },
   ];
   const nav = (cb: () => void) => { cb(); if (isMobile) onClose(); };
 
