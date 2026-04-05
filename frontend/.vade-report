@@ -1,0 +1,42 @@
+## Vercel Web Analytics Installation
+
+Successfully installed and configured Vercel Web Analytics for the Rukaya AI Next.js project.
+
+### Changes Made
+
+**Modified Files:**
+- `frontend/src/app/layout.tsx` - Added Vercel Analytics component to the root layout
+
+### Implementation Details
+
+1. **Package Installation**: The `@vercel/analytics` package (v2.0.1) was already present in package.json, so no additional installation was required.
+
+2. **Framework Detection**: Identified the project as using Next.js 16.2.1 with the App Router architecture.
+
+3. **Analytics Integration**: 
+   - Imported the `Analytics` component from `@vercel/analytics/next`
+   - Added the component to the root layout at `frontend/src/app/layout.tsx`
+   - Placed the `<Analytics />` component inside the `<body>` tag, after the children content
+   - This follows the official Vercel documentation for Next.js App Router setup
+
+4. **Verification**:
+   - Successfully built the project with `npm run build`
+   - All TypeScript compilation passed
+   - No new linting errors were introduced by the changes
+   - The build completed successfully with all routes properly generated
+
+### Technical Notes
+
+- The Analytics component was added to the root layout, which ensures it will be present on all pages of the application
+- The component is placed at the end of the body tag to avoid blocking page rendering
+- Following Next.js App Router best practices, the import uses `@vercel/analytics/next` for optimal integration
+- The existing code structure and styling were preserved
+
+### Next Steps
+
+Once deployed to Vercel, the analytics will automatically start tracking:
+- Page views
+- User interactions
+- Performance metrics
+
+The analytics data will be visible in the Vercel dashboard after the first users visit the deployed application.
