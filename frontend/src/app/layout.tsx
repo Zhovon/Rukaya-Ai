@@ -66,6 +66,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full">
       <head>
+        <meta name="google-site-verification" content="xff9Ww0qDOkt5wcXajC_EQb5pTmuB4rVFTsYgLrL6d8" />
         <link rel="icon" href="/icon.svg" type="image/svg+xml" sizes="any" />
         <link rel="apple-touch-icon" href="/icon.svg" />
         <link rel="manifest" href="/manifest.webmanifest" />
