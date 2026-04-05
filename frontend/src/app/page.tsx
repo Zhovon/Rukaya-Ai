@@ -244,6 +244,13 @@ export default function RukayaApp() {
       const r = localStorage.getItem(SESSIONS_KEY); if (r) setSessions(JSON.parse(r)); 
       const l = localStorage.getItem(LANG_KEY) as Lang; if (l && (l==="en"||l==="bn")) setLang(l);
 
+      // Check URL search params for SEO tool routing
+      const searchParams = new URLSearchParams(window.location.search);
+      const urlTool = searchParams.get("tool");
+      if (urlTool && ["chat", "quran", "ruqyah", "qibla", "zakat", "verifier"].includes(urlTool)) {
+        setActiveTool(urlTool as Tool);
+      }
+
       // Check daily hadith
       const today = new Date().toISOString().split('T')[0];
       const lastSeen = localStorage.getItem("rukaya_hadith_date");
@@ -260,6 +267,11 @@ export default function RukayaApp() {
       }
     } catch {}
   }, []);
+
+  const handleSelectTool = (tool: Tool) => {
+    setActiveTool(tool);
+    window.history.pushState(null, "", tool === "chat" ? "/" : `/?tool=${tool}`);
+  };
 
   const closeHadithModal = () => {
     const today = new Date().toISOString().split('T')[0];
@@ -290,10 +302,10 @@ export default function RukayaApp() {
 
   // ── Session management ──
   const newChat = useCallback(() => {
-    setActiveSessionId(null); setActiveTool("chat"); setError(null); setTimeout(() => textareaRef.current?.focus(), 100);
+    setActiveSessionId(null); handleSelectTool("chat"); setError(null); setTimeout(() => textareaRef.current?.focus(), 100);
   }, []);
 
-  const selectSession = (id: string) => { setActiveSessionId(id); setActiveTool("chat"); setError(null); };
+  const selectSession = (id: string) => { setActiveSessionId(id); handleSelectTool("chat"); setError(null); };
   const deleteSession  = (id: string) => {
     const updated = sessions.filter(s => s.id !== id);
     saveSessions(updated);
@@ -470,7 +482,7 @@ export default function RukayaApp() {
             <Sidebar sessions={sessions} activeSessionId={activeSessionId} activeTool={activeTool}
               madhhab={madhhab} prayerTimes={prayerTimes} lang={lang} onLangChange={handleLangChange} onNewChat={newChat}
               onSelectSession={selectSession} onDeleteSession={deleteSession}
-              onSelectTool={setActiveTool} onMadhhabChange={setMadhhab}
+              onSelectTool={handleSelectTool} onMadhhabChange={setMadhhab}
               onClose={() => setSidebarOpen(false)} isMobile={true} />
           </div>
         </div>
@@ -481,7 +493,7 @@ export default function RukayaApp() {
         <Sidebar sessions={sessions} activeSessionId={activeSessionId} activeTool={activeTool}
           madhhab={madhhab} prayerTimes={prayerTimes} lang={lang} onLangChange={handleLangChange} onNewChat={newChat}
           onSelectSession={selectSession} onDeleteSession={deleteSession}
-          onSelectTool={setActiveTool} onMadhhabChange={setMadhhab}
+          onSelectTool={handleSelectTool} onMadhhabChange={setMadhhab}
           onClose={() => {}} isMobile={false} />
       </div>
 
