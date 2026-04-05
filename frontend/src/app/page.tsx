@@ -7,12 +7,13 @@ const RuqyahAudio     = dynamic(() => import("@/components/RuqyahAudio"),     { 
 const QiblaFinder     = dynamic(() => import("@/components/QiblaFinder"),     { ssr: false });
 const ZakatCalculator = dynamic(() => import("@/components/ZakatCalculator"), { ssr: false });
 const QuranReader     = dynamic(() => import("@/components/QuranReader"),     { ssr: false });
+const HadithVerifier  = dynamic(() => import("@/components/HadithVerifier"),  { ssr: false });
 
 // ─── Types ───────────────────────────────────────────────────
 type Message    = { id: string; role: "user" | "assistant"; content: string; isAudioPlaying?: boolean };
 type Session    = { id: string; title: string; messages: Message[]; createdAt: number };
 type PrayerTimes = { fajr: string; sunrise: string; dhuhr: string; asr: string; maghrib: string; isha: string; hijri_date: string };
-type Tool       = "chat" | "quran" | "ruqyah" | "qibla" | "zakat";
+type Tool       = "chat" | "quran" | "ruqyah" | "qibla" | "zakat" | "verifier";
 type Lang       = "en" | "bn";
 
 const SESSIONS_KEY = "rukaya_sessions";
@@ -520,6 +521,7 @@ export default function RukayaApp() {
             {activeTool === "ruqyah" && <RuqyahAudio lang={lang} />}
             {activeTool === "qibla"  && <QiblaFinder lang={lang} />}
             {activeTool === "zakat"  && <ZakatCalculator lang={lang} />}
+            {activeTool === "verifier" && <HadithVerifier lang={lang} />}
           </div>
         )}
 
