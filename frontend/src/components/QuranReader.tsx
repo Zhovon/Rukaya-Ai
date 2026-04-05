@@ -38,24 +38,25 @@ export default function QuranReader({ lang = "en" }: { lang?: "en" | "bn" }) {
   // 2. Fetch Verses for Selected Surah
   useEffect(() => {
     setIsLoading(true);
-    // Translation: 131 = Saheeh International (en), 161 = Taisirul Quran (bn)
-    const translationId = lang === "bn" ? 161 : 131;
+    // Translation: 20 = Saheeh International (en), 161 = Taisirul Quran (bn)
+    const translationId = lang === "bn" ? 161 : 20;
     
     // First fetch texts
     fetch(`https://api.quran.com/api/v4/verses/by_chapter/${selectedSurah}?language=${lang}&words=false&translations=${translationId}&fields=text_uthmani&per_page=300`)
       .then(res => res.json())
       .then(async (data) => {
-        const versesData = data.verses;
+        const versesData = data.verses || [];
         // Fetch audio for these verses (Mishary Alafasy = 7)
         const audioRes = await fetch(`https://api.quran.com/api/v4/recitations/7/by_chapter/${selectedSurah}?per_page=300`);
         const audioData = await audioRes.json();
+        const audios = audioData.audio_files || [];
         
         const merged = versesData.map((v: any, index: number) => ({
           id: v.id,
           verse_key: v.verse_key,
           text_uthmani: v.text_uthmani,
-          translation: v.translations[0]?.text?.replace(/<[^>]+>/g, '') || "",
-          audio_url: audioData.audio_files[index]?.url ? `https://verses.quran.com/${audioData.audio_files[index].url}` : null,
+          translation: v.translations?.[0]?.text?.replace(/<[^>]+>/g, '') || "Translation loading...",
+          audio_url: audios[index]?.url ? `https://verses.quran.com/${audios[index].url}` : null,
         }));
         
         setVerses(merged);
