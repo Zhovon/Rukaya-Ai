@@ -40,6 +40,9 @@ export const metadata: Metadata = {
       'bn-BD': '/?lang=bn',
     },
   },
+  verification: {
+    google: "xff9Ww0qDOkt5wcXajC_EQb5pTmuB4rVFTsYgLrL6d8",
+  },
 };
 
 export default function RootLayout({
