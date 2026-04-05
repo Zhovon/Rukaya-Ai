@@ -114,7 +114,6 @@ export default function QiblaFinder({ lang = "en" }: { lang?: "en" | "bn" }) {
     }
   };
 
-  const needleAngle = bearing != null ? bearing - compassHeading : 0;
 
   return (
     <div className="p-4 sm:p-6 max-w-4xl mx-auto flex flex-col items-center gap-6">
@@ -154,8 +153,15 @@ export default function QiblaFinder({ lang = "en" }: { lang?: "en" | "bn" }) {
 
           {/* Compass */}
           <div className={`relative w-64 h-64 mt-4 mb-4 transition-opacity duration-300 ${needsPermission ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}>
-            {/* Compass ring */}
-            <div className="absolute inset-0 rounded-full border-4 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 shadow-2xl flex items-center justify-center">
+            
+            {/* Phone Heading Indicator (Fixed at 12 o'clock) */}
+            <div className="absolute top-[-10px] left-1/2 -translate-x-1/2 w-4 h-4 bg-emerald-500 rotate-45 rounded-sm z-20 shadow-md" />
+
+            {/* Compass ring (Rotates to magnetic north) */}
+            <div 
+              className="absolute inset-0 rounded-full border-4 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 shadow-2xl flex items-center justify-center"
+              style={{ transform: `rotate(${-compassHeading}deg)` }}
+            >
               {/* Cardinal directions */}
               {[{l:"N",r:0},{l:"E",r:90},{l:"S",r:180},{l:"W",r:270}].map(({l,r}) => (
                 <span
@@ -169,10 +175,10 @@ export default function QiblaFinder({ lang = "en" }: { lang?: "en" | "bn" }) {
                 </span>
               ))}
 
-              {/* Kaaba needle */}
+              {/* Kaaba needle (Fixed to bearing on the dial) */}
               <div
                 className="absolute w-full h-full flex items-center justify-center"
-                style={{ transform: `rotate(${needleAngle}deg)` }}
+                style={{ transform: `rotate(${bearing}deg)` }}
               >
                 <div className="w-1.5 h-28 bg-gradient-to-t from-transparent via-emerald-500 to-emerald-400 rounded-full absolute top-4 shadow-[0_0_12px_rgba(16,185,129,0.4)]" />
                 {/* Kaaba icon at top of needle */}
