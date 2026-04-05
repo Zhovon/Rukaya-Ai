@@ -13,6 +13,17 @@ type ZakatResult = {
   note: string;
 };
 
+const CURRENCIES = [
+  { code: "USD", symbol: "$" },
+  { code: "BDT", symbol: "৳" },
+  { code: "INR", symbol: "₹" },
+  { code: "PKR", symbol: "₨" },
+  { code: "EUR", symbol: "€" },
+  { code: "GBP", symbol: "£" },
+  { code: "AED", symbol: "د.إ" },
+  { code: "SAR", symbol: "ر.س" },
+];
+
 // -- Dictionaries
 const dict = {
   en: {
@@ -76,8 +87,10 @@ export default function ZakatCalculator({ lang = "en" }: { lang?: "en" | "bn" })
   const [result, setResult] = useState<ZakatResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currency, setCurrency] = useState("USD");
 
   const t = dict[lang];
+  const symbol = CURRENCIES.find(c => c.code === currency)?.symbol || "$";
 
   const handleCalculate = async () => {
     setLoading(true);
@@ -108,15 +121,28 @@ export default function ZakatCalculator({ lang = "en" }: { lang?: "en" | "bn" })
 
   return (
     <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{t.title}</h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{t.subtitle}</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{t.title}</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{t.subtitle}</p>
+        </div>
+        <select
+          value={currency}
+          onChange={(e) => setCurrency(e.target.value)}
+          className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl px-4 py-2.5 focus:outline-none focus:border-emerald-500 font-bold text-sm w-full sm:w-auto shadow-sm"
+        >
+          {CURRENCIES.map(c => (
+            <option key={c.code} value={c.code}>
+              {c.code} ({c.symbol})
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Metal Prices */}
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-white border border-slate-200 dark:bg-slate-800/60 dark:border-slate-700/40 rounded-2xl p-4 shadow-sm">
-          <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-1">{t.goldPrice}</label>
+          <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-1">{t.goldPrice.replace("USD", currency)}</label>
           <input
             type="number" value={goldPrice}
             onChange={(e) => setGoldPrice(e.target.value)}
@@ -125,7 +151,7 @@ export default function ZakatCalculator({ lang = "en" }: { lang?: "en" | "bn" })
           />
         </div>
         <div className="bg-white border border-slate-200 dark:bg-slate-800/60 dark:border-slate-700/40 rounded-2xl p-4 shadow-sm">
-          <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-1">{t.silverPrice}</label>
+          <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 block mb-1">{t.silverPrice.replace("USD", currency)}</label>
           <input
             type="number" value={silverPrice}
             onChange={(e) => setSilverPrice(e.target.value)}
@@ -146,7 +172,7 @@ export default function ZakatCalculator({ lang = "en" }: { lang?: "en" | "bn" })
                   <span className="font-bold text-slate-700 dark:text-slate-200 text-sm">{cfg.label}</span>
                   <span className="ml-2 text-xs text-slate-500 dark:text-slate-500">{cfg.hint}</span>
                 </div>
-                <span className="text-xs font-medium text-slate-500 bg-slate-100 dark:text-slate-400 dark:bg-slate-700/50 px-2 py-0.5 rounded-full">{cfg.unit}</span>
+                <span className="text-xs font-medium text-slate-500 bg-slate-100 dark:text-slate-400 dark:bg-slate-700/50 px-2 py-0.5 rounded-full">{cfg.unit === "USD" ? currency : cfg.unit}</span>
               </div>
               <input
                 type="number"
@@ -181,7 +207,7 @@ export default function ZakatCalculator({ lang = "en" }: { lang?: "en" | "bn" })
               <>
                 <p className="text-emerald-700 dark:text-emerald-400 font-bold text-sm tracking-wide uppercase">{t.due}</p>
                 <p className="text-4xl font-extrabold text-slate-800 dark:text-white mt-1">
-                  ${result.zakat_amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                  {symbol}{result.zakat_amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                 </p>
                 <p className="text-slate-500 dark:text-slate-400 text-xs mt-1 font-medium">{t.rateHelp}</p>
               </>
@@ -196,11 +222,11 @@ export default function ZakatCalculator({ lang = "en" }: { lang?: "en" | "bn" })
           <div className="grid grid-cols-2 gap-3 text-xs">
             <div className="bg-white border border-slate-200 dark:border-transparent dark:bg-slate-800/50 rounded-xl p-3 shadow-sm">
               <p className="text-slate-500 dark:text-slate-400 font-medium">{t.totWealth}</p>
-              <p className="font-bold text-slate-800 dark:text-slate-200 text-sm mt-0.5">${result.total_zakatable_wealth.toLocaleString()}</p>
+              <p className="font-bold text-slate-800 dark:text-slate-200 text-sm mt-0.5">{symbol}{result.total_zakatable_wealth.toLocaleString()}</p>
             </div>
             <div className="bg-white border border-slate-200 dark:border-transparent dark:bg-slate-800/50 rounded-xl p-3 shadow-sm">
               <p className="text-slate-500 dark:text-slate-400 font-medium">{t.nisabThresh}</p>
-              <p className="font-bold text-slate-800 dark:text-slate-200 text-sm mt-0.5">${result.nisab_threshold_used.toLocaleString()}</p>
+              <p className="font-bold text-slate-800 dark:text-slate-200 text-sm mt-0.5">{symbol}{result.nisab_threshold_used.toLocaleString()}</p>
             </div>
           </div>
 
@@ -211,7 +237,7 @@ export default function ZakatCalculator({ lang = "en" }: { lang?: "en" | "bn" })
                 val > 0 ? (
                   <div key={key} className="flex justify-between text-xs py-1">
                     <span className="text-slate-600 dark:text-slate-400 font-medium">{t.breakdown[key as keyof typeof t.breakdown]}</span>
-                    <span className="text-emerald-700 dark:text-emerald-400 font-bold">${val.toLocaleString()}</span>
+                    <span className="text-emerald-700 dark:text-emerald-400 font-bold">{symbol}{val.toLocaleString()}</span>
                   </div>
                 ) : null
               )}

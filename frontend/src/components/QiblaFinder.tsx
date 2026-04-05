@@ -171,7 +171,7 @@ export default function QiblaFinder({ lang = "en" }: { lang?: "en" | "bn" }) {
 
               {/* Kaaba needle */}
               <div
-                className="absolute w-full h-full flex items-center justify-center transition-transform duration-500"
+                className="absolute w-full h-full flex items-center justify-center"
                 style={{ transform: `rotate(${needleAngle}deg)` }}
               >
                 <div className="w-1.5 h-28 bg-gradient-to-t from-transparent via-emerald-500 to-emerald-400 rounded-full absolute top-4 shadow-[0_0_12px_rgba(16,185,129,0.4)]" />
