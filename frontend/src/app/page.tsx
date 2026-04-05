@@ -3,17 +3,19 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
 
-const RuqyahAudio     = dynamic(() => import("@/components/RuqyahAudio"),     { ssr: false });
-const QiblaFinder     = dynamic(() => import("@/components/QiblaFinder"),     { ssr: false });
-const ZakatCalculator = dynamic(() => import("@/components/ZakatCalculator"), { ssr: false });
-const QuranReader     = dynamic(() => import("@/components/QuranReader"),     { ssr: false });
-const HadithVerifier  = dynamic(() => import("@/components/HadithVerifier"),  { ssr: false });
+const RuqyahAudio     = dynamic<{ lang: Lang }>(() => import("@/components/RuqyahAudio"),     { ssr: false });
+const QiblaFinder     = dynamic<{ lang: Lang }>(() => import("@/components/QiblaFinder"),     { ssr: false });
+const ZakatCalculator = dynamic<{ lang: Lang }>(() => import("@/components/ZakatCalculator"), { ssr: false });
+const QuranReader     = dynamic<{ lang: Lang }>(() => import("@/components/QuranReader"),     { ssr: false });
+const HadithVerifier  = dynamic<{ lang: Lang }>(() => import("@/components/HadithVerifier"),  { ssr: false });
+const TasbeehCounter  = dynamic<{ lang: Lang }>(() => import("@/components/TasbeehCounter"),  { ssr: false });
+import PwaInstallButton from "@/components/PwaInstallButton";
 
 // ─── Types ───────────────────────────────────────────────────
 type Message    = { id: string; role: "user" | "assistant"; content: string; isAudioPlaying?: boolean };
 type Session    = { id: string; title: string; messages: Message[]; createdAt: number };
 type PrayerTimes = { fajr: string; sunrise: string; dhuhr: string; asr: string; maghrib: string; isha: string; hijri_date: string };
-type Tool       = "chat" | "quran" | "ruqyah" | "qibla" | "zakat" | "verifier";
+type Tool       = "chat" | "quran" | "ruqyah" | "qibla" | "zakat" | "verifier" | "tasbeeh";
 type Lang       = "en" | "bn";
 
 const SESSIONS_KEY = "rukaya_sessions";
@@ -104,6 +106,7 @@ function Sidebar({ sessions, activeSessionId, activeTool, madhhab, prayerTimes, 
     { id: "qibla",  emoji: "🧭", label: dict.toolQibla  },
     { id: "zakat",  emoji: "⚖️", label: dict.toolZakat  },
     { id: "verifier", emoji: "🔍", label: lang === "bn" ? "হাদিস যাচাই" : "Hadith Verifier" },
+    { id: "tasbeeh", emoji: "📿", label: lang === "bn" ? "তাসবীহ" : "Tasbeeh" },
   ];
   const nav = (cb: () => void) => { cb(); if (isMobile) onClose(); };
 
@@ -144,6 +147,7 @@ function Sidebar({ sessions, activeSessionId, activeTool, madhhab, prayerTimes, 
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
           {dict.newChat}
         </button>
+        <PwaInstallButton lang={lang} />
       </div>
 
       {/* Tools */}
@@ -194,7 +198,11 @@ function Sidebar({ sessions, activeSessionId, activeTool, madhhab, prayerTimes, 
               {[["Fajr", prayerTimes.fajr],["Dhuhr", prayerTimes.dhuhr],["Asr", prayerTimes.asr],
                 ["Maghrib", prayerTimes.maghrib],["Isha", prayerTimes.isha],["Sunrise", prayerTimes.sunrise]
               ].map(([n, tVal]) => (
-                <div key={n} className="text-center">
+                <div 
+                  key={n} 
+                  onClick={() => nav(() => onSelectTool("tasbeeh"))} 
+                  className="text-center cursor-pointer hover:bg-emerald-100/50 dark:hover:bg-emerald-800/30 rounded-lg py-1 transition-all active:scale-95"
+                >
                   <p className="text-slate-500 dark:text-slate-500">{n}</p>
                   <p className="text-emerald-700 dark:text-emerald-400 font-semibold">{tVal}</p>
                 </div>
@@ -535,6 +543,7 @@ export default function RukayaApp() {
             {activeTool === "qibla"  && <QiblaFinder lang={lang} />}
             {activeTool === "zakat"  && <ZakatCalculator lang={lang} />}
             {activeTool === "verifier" && <HadithVerifier lang={lang} />}
+            {activeTool === "tasbeeh" && <TasbeehCounter lang={lang} />}
           </div>
         )}
 
