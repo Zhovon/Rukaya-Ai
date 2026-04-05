@@ -106,9 +106,9 @@ function Sidebar({ sessions, activeSessionId, activeTool, madhhab, prayerTimes, 
   const nav = (cb: () => void) => { cb(); if (isMobile) onClose(); };
 
   return (
-    <aside className="flex flex-col h-full w-72 bg-surface text-primary border-r border-slate-200 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-100 islamic-pattern">
+    <aside className="flex flex-col h-full w-72 bg-white text-primary border-r border-slate-200 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-100 islamic-pattern">
       {/* Brand & Lang Toggle */}
-      <div className="flex items-center justify-between px-4 py-5 border-b border-slate-100 dark:border-slate-800 bg-surface dark:bg-slate-900">
+      <div className="flex items-center justify-between px-4 py-5 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-sm font-bold text-white shadow-lg shadow-emerald-500/20 font-arabic">
             ر
@@ -408,7 +408,7 @@ export default function RukayaApp() {
   const showChat = activeTool === "chat";
 
   return (
-    <div className="flex h-[100dvh] bg-base text-primary overflow-hidden selection:bg-emerald-200 dark:selection:bg-emerald-900">
+    <div className="flex h-[100dvh] bg-slate-50 text-slate-900 overflow-hidden selection:bg-emerald-200 dark:selection:bg-emerald-900">
 
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
@@ -434,10 +434,10 @@ export default function RukayaApp() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 bg-base dark:bg-slate-950 relative">
+      <div className="flex-1 flex flex-col min-w-0 bg-slate-50 dark:bg-slate-950 relative">
 
         {/* Mobile Top Bar */}
-        <div className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-800 bg-surface dark:bg-slate-900 sticky top-0 z-20 shadow-sm">
+        <div className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 sticky top-0 z-20 shadow-sm">
           <button onClick={() => setSidebarOpen(true)} className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 p-1">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
           </button>
