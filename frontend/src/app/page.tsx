@@ -276,20 +276,61 @@ export default function RukayaApp() {
   };
 
   // ── TTS ──
-  const speakText = (text: string, id: string) => {
+  const speakText = (text: string, id: string, currentlyPlaying: boolean) => {
     if (!("speechSynthesis" in window)) return;
-    window.speechSynthesis.cancel();
-    const u  = new SpeechSynthesisUtterance(text);
-    const av = window.speechSynthesis.getVoices().find(v => v.lang.startsWith("ar"));
-    // Try to find Bangla voice if language is BN and text isn't purely Arabic
-    const bv = window.speechSynthesis.getVoices().find(v => v.lang.startsWith("bn"));
-    
-    if (av && /[\u0600-\u06FF]/.test(text)) u.voice = av;
-    else if (bv && lang === "bn") u.voice = bv;
+    window.speechSynthesis.cancel(); // Always stop whatever is playing
 
-    u.onstart = () => setSessions(prev => prev.map(s => ({ ...s, messages: s.messages.map(m => m.id === id ? { ...m, isAudioPlaying: true }  : m) })));
-    u.onend   = () => setSessions(prev => prev.map(s => ({ ...s, messages: s.messages.map(m => m.id === id ? { ...m, isAudioPlaying: false } : m) })));
-    window.speechSynthesis.speak(u);
+    // If it was already playing, this was a "Stop" command.
+    if (currentlyPlaying) {
+      setSessions(prev => prev.map(s => ({ ...s, messages: s.messages.map(m => m.id === id ? { ...m, isAudioPlaying: false } : m) })));
+      return;
+    }
+
+    // Clean text of emojis & markdown that confuse TTS
+    const cleanText = text.replace(/[*_~`#\[\]]/g, "").replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '');
+
+    const voices = window.speechSynthesis.getVoices();
+    const av = voices.find(v => v.lang.startsWith("ar") && v.name.includes("Male")) || voices.find(v => v.lang.startsWith("ar"));
+    const bv = voices.find(v => v.lang.startsWith("bn"));
+    // Prefer Google UK/US voices, or premium iOS voices
+    const premiumEn = voices.find(v => v.name.includes("Google UK English Male") || v.name.includes("Google US English") || v.name.includes("Samantha") || v.name.includes("Daniel"));
+    
+    // Chunking helps mobile Safari not crash on long text
+    const chunks = cleanText.match(/[^.!?]+[.!?]+|\s+/g) || [cleanText];
+    let chunkIndex = 0;
+
+    setSessions(prev => prev.map(s => ({ ...s, messages: s.messages.map(m => m.id === id ? { ...m, isAudioPlaying: true }  : m) })));
+
+    const speakNextChunk = () => {
+      if (chunkIndex >= chunks.length) {
+        setSessions(prev => prev.map(s => ({ ...s, messages: s.messages.map(m => m.id === id ? { ...m, isAudioPlaying: false } : m) })));
+        return;
+      }
+
+      const chunk = chunks[chunkIndex].trim();
+      if (!chunk) { chunkIndex++; speakNextChunk(); return; }
+
+      const u = new SpeechSynthesisUtterance(chunk);
+      if (/[\u0600-\u06FF]/.test(chunk) && av) u.voice = av;
+      else if (lang === "bn" && bv) u.voice = bv;
+      else if (premiumEn) u.voice = premiumEn;
+
+      u.pitch = 1.0;
+      u.rate = 1.0;
+
+      u.onend = () => {
+        chunkIndex++;
+        speakNextChunk();
+      };
+      
+      u.onerror = () => {
+        setSessions(prev => prev.map(s => ({ ...s, messages: s.messages.map(m => m.id === id ? { ...m, isAudioPlaying: false } : m) })));
+      };
+
+      window.speechSynthesis.speak(u);
+    };
+
+    speakNextChunk();
   };
 
   // ── Send (streaming) ──
@@ -424,7 +465,7 @@ export default function RukayaApp() {
 
         {/* Tool Views */}
         {!showChat && (
-          <div className="flex-1 overflow-y-auto pb-20 lg:pb-0 scroll-smooth">
+          <div className="flex-1 overflow-y-auto pb-6 lg:pb-0 scroll-smooth">
             {activeTool === "quran" && <QuranReader lang={lang} />}
             {activeTool === "ruqyah" && <RuqyahAudio lang={lang} />}
             {activeTool === "qibla"  && <QiblaFinder lang={lang} />}
@@ -435,7 +476,7 @@ export default function RukayaApp() {
         {/* Chat View */}
         {showChat && (
           <>
-            <div className="flex-1 overflow-y-auto pb-24 lg:pb-0 scroll-smooth">
+            <div className="flex-1 overflow-y-auto pb-0 scroll-smooth">
               {messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full px-4 pb-32 text-center pt-10">
                   <div className="w-20 h-20 rounded-2xl bg-emerald-600 flex items-center justify-center text-4xl font-bold text-white shadow-xl shadow-emerald-600/20 mb-6 font-arabic ring-4 ring-emerald-50 dark:ring-emerald-900/30">
@@ -477,7 +518,7 @@ export default function RukayaApp() {
                               )}
                             </div>
                             {msg.content && (
-                              <button onClick={() => speakText(msg.content, msg.id)}
+                              <button onClick={() => speakText(msg.content, msg.id, msg.isAudioPlaying ?? false)}
                                 className={`mt-3 opacity-0 group-hover:opacity-100 flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full transition-all duration-200 ${
                                   msg.isAudioPlaying ? "opacity-100 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400" : "bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
                                 }`}>
@@ -501,7 +542,7 @@ export default function RukayaApp() {
             </div>
 
             {/* Input Bar */}
-            <div className="flex-none px-3 sm:px-4 pb-[calc(env(safe-area-inset-bottom)+76px)] lg:pb-6 pt-3 bg-white dark:bg-slate-950 z-20 border-t border-slate-100 dark:border-slate-900 w-full relative">
+            <div className="flex-none px-3 sm:px-4 pb-[calc(env(safe-area-inset-bottom)+16px)] lg:pb-6 pt-3 bg-white dark:bg-slate-950 z-20 border-t border-slate-100 dark:border-slate-900 w-full relative">
               <div className="max-w-3xl mx-auto">
                 <div className="relative flex items-end gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 shadow-lg focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 transition-all duration-200">
                   <textarea
@@ -521,7 +562,7 @@ export default function RukayaApp() {
                   <button onClick={() => handleSend()} disabled={isLoading || !input.trim()}
                     className="flex-none w-10 h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold flex items-center justify-center transition-all duration-200 shadow-md active:scale-95 flex-shrink-0">
                     {isLoading ? (
-                      <div className="w-5 h-5 border-2 border-slate-200/30 border-t-white rounded-full animate-spin" />
+                       <div className="w-5 h-5 border-2 border-slate-200/30 border-t-white rounded-full animate-spin" />
                     ) : (
                       <svg className="w-4 h-4 -rotate-45" fill="currentColor" viewBox="0 0 24 24"><path d="M3.478 2.404a.75.75 0 00-.926.941l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.404z" /></svg>
                     )}
@@ -535,27 +576,6 @@ export default function RukayaApp() {
           </>
         )}
 
-        {/* Mobile Bottom Nav */}
-        <nav className="lg:hidden fixed bottom-0 inset-x-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]"
-          style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
-          <div className="flex">
-            {([
-              { id: "chat",   emoji: "💬", label: dict.toolChat   },
-              { id: "quran",  emoji: "📖", label: dict.toolQuran  },
-              { id: "ruqyah", emoji: "🎧", label: dict.toolRuqyah },
-              { id: "qibla",  emoji: "🧭", label: dict.toolQibla  },
-              { id: "zakat",  emoji: "⚖️", label: dict.toolZakat  },
-            ] as { id: Tool; emoji: string; label: string }[]).map(tab => (
-              <button key={tab.id} onClick={() => setActiveTool(tab.id)}
-                className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 text-[10px] font-bold transition-colors duration-200 ${
-                  activeTool === tab.id ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
-                }`}>
-                <span className="text-xl leading-none mb-0.5">{tab.emoji}</span>
-                <span className="tracking-wide uppercase scale-90 origin-top">{tab.label}</span>
-              </button>
-            ))}
-          </div>
-        </nav>
       </div>
     </div>
   );
