@@ -7,6 +7,9 @@ type VerificationResult = {
   sources: string[];
   reasoning_en: string;
   reasoning_bn: string;
+  arabic_text?: string;
+  english_text?: string;
+  bengali_text?: string;
 };
 
 const t = {
@@ -172,6 +175,27 @@ export default function HadithVerifier({ lang = "en" }: { lang?: "en" | "bn" }) 
                  {lang === "bn" ? result.reasoning_bn : result.reasoning_en}
                </p>
             </div>
+
+            {/* Verified Text block */}
+            {(result.arabic_text || result.english_text || result.bengali_text) && (
+              <div className="bg-emerald-50/50 dark:bg-emerald-950/20 rounded-xl p-5 border border-emerald-100 dark:border-emerald-900/30 shadow-sm relative">
+                <span className="absolute -top-3 left-4 bg-emerald-100 text-emerald-800 dark:bg-emerald-900/80 dark:text-emerald-300 text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-700">
+                  {lang === "bn" ? "যাচাইকৃত পাঠ্য" : "Verified Text"}
+                </span>
+
+                {result.arabic_text && (
+                  <p className="text-xl font-arabic text-emerald-800 dark:text-emerald-300 leading-loose text-center mb-4 mt-2" dir="rtl">
+                    {result.arabic_text}
+                  </p>
+                )}
+                
+                {((lang === "bn" && result.bengali_text) || (lang === "en" && result.english_text)) && (
+                  <p className="text-sm font-medium text-slate-700 dark:text-slate-300 leading-relaxed text-center italic">
+                    "{lang === "bn" ? result.bengali_text : result.english_text}"
+                  </p>
+                )}
+              </div>
+            )}
 
           </div>
         </div>

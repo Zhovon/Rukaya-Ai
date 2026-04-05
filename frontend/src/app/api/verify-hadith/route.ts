@@ -27,7 +27,10 @@ JSON Schema to strictly follow:
   "verdict": "authentic" | "weak" | "fabricated" | "controversial" | "unknown",
   "sources": ["List of reference books and numbers, eg. Sahih Bukhari 123"],
   "reasoning_en": "Detailed English explanation of the chain of narrators, why it received this grading, and who graded it.",
-  "reasoning_bn": "The exact Bengali translation of the reasoning."
+  "reasoning_bn": "The exact Bengali translation of the reasoning.",
+  "arabic_text": "The full authentic Arabic text if it exists (leave blank if completely fabricated and has no basis).",
+  "english_text": "The verified English translation.",
+  "bengali_text": "The verified Bengali translation."
 }
 `;
 
