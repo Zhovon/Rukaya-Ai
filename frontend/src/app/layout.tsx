@@ -41,7 +41,7 @@ export const metadata: Metadata = {
     },
   },
   verification: {
-    google: "xff9Ww0qDOkt5wcXajC_EQb5pTmuB4rVFTsYgLrL6d8",
+    google: "BCOVBr4Z7JrY6xx6ltcN0miJwfkqpeEx-OWGG1UlFTw",
   },
 };
 
@@ -66,7 +66,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full">
       <head>
-        <meta name="google-site-verification" content="xff9Ww0qDOkt5wcXajC_EQb5pTmuB4rVFTsYgLrL6d8" />
+        <meta name="google-site-verification" content="BCOVBr4Z7JrY6xx6ltcN0miJwfkqpeEx-OWGG1UlFTw" />
         <link rel="icon" href="/icon.svg" type="image/svg+xml" sizes="any" />
         <link rel="apple-touch-icon" href="/icon.svg" />
         <link rel="manifest" href="/manifest.webmanifest" />
