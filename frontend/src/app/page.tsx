@@ -464,7 +464,7 @@ export default function RukayaApp() {
                           <div className="flex-none w-9 h-9 rounded-full bg-emerald-600 flex items-center justify-center text-white text-xs font-bold shadow-md mt-0.5 font-arabic">ر</div>
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 mb-1.5 uppercase tracking-wide">Rukaya AI</p>
-                            <div className="text-slate-800 dark:text-slate-200 text-[16px] leading-relaxed whitespace-pre-wrap">
+                            <div className="text-slate-800 dark:text-slate-200 text-[16px] leading-relaxed whitespace-pre-wrap break-words">
                               {msg.content || (
                                 <span className="flex items-center gap-2 text-emerald-500">
                                   <span className="flex gap-1.5">
@@ -489,7 +489,7 @@ export default function RukayaApp() {
                       )
                       : (
                         <div key={msg.id} className="flex justify-end">
-                          <div className="max-w-[80%] bg-slate-900 border border-slate-800 text-white dark:bg-emerald-900/30 dark:border-emerald-800/50 rounded-2xl rounded-br-sm px-5 py-3.5 text-[15px] leading-relaxed whitespace-pre-wrap shadow-sm">
+                          <div className="max-w-[80%] bg-slate-900 border border-slate-800 text-white dark:bg-emerald-900/30 dark:border-emerald-800/50 rounded-2xl rounded-br-sm px-5 py-3.5 text-[15px] leading-relaxed whitespace-pre-wrap shadow-sm break-words">
                             {msg.content}
                           </div>
                         </div>

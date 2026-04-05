@@ -106,15 +106,15 @@ export default function QuranReader({ lang = "en" }: { lang?: "en" | "bn" }) {
         <h2 className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mb-4 flex items-center gap-2">
           📖 {lang === "bn" ? "কুরআন মাজীদ" : "The Noble Quran"}
         </h2>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 w-full">
           <select
             value={selectedSurah}
             onChange={(e) => setSelectedSurah(Number(e.target.value))}
-            className="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl px-4 py-3 focus:outline-none focus:border-emerald-500 font-medium"
+            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl px-3 py-3 focus:outline-none focus:border-emerald-500 font-medium text-sm sm:text-base break-words whitespace-normal"
           >
             {surahs.map((s) => (
               <option key={s.id} value={s.id}>
-                {s.id}. {s.name_simple} ({s.translated_name.name}) — {s.name_arabic}
+                {s.id}. {s.name_simple} ({s.translated_name.name})
               </option>
             ))}
           </select>
