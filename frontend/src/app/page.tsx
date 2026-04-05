@@ -6,14 +6,17 @@ import dynamic from "next/dynamic";
 const RuqyahAudio     = dynamic(() => import("@/components/RuqyahAudio"),     { ssr: false });
 const QiblaFinder     = dynamic(() => import("@/components/QiblaFinder"),     { ssr: false });
 const ZakatCalculator = dynamic(() => import("@/components/ZakatCalculator"), { ssr: false });
+const QuranReader     = dynamic(() => import("@/components/QuranReader"),     { ssr: false });
 
 // ─── Types ───────────────────────────────────────────────────
 type Message    = { id: string; role: "user" | "assistant"; content: string; isAudioPlaying?: boolean };
 type Session    = { id: string; title: string; messages: Message[]; createdAt: number };
 type PrayerTimes = { fajr: string; sunrise: string; dhuhr: string; asr: string; maghrib: string; isha: string; hijri_date: string };
-type Tool       = "chat" | "ruqyah" | "qibla" | "zakat";
+type Tool       = "chat" | "quran" | "ruqyah" | "qibla" | "zakat";
+type Lang       = "en" | "bn";
 
 const SESSIONS_KEY = "rukaya_sessions";
+const LANG_KEY     = "rukaya_lang";
 const MADHHABS     = ["Hanafi", "Maliki", "Shafi'i", "Hanbali"];
 
 function generateId() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
@@ -22,64 +25,134 @@ function getTitle(msgs: Message[]) {
   return first ? first.content.slice(0, 42) + (first.content.length > 42 ? "…" : "") : "New Chat";
 }
 
+// ─── Dictionary ──────────────────────────────────────────────
+const t = {
+  en: {
+    app: "Rukaya AI",
+    sub: "Islamic Companion",
+    newChat: "New Chat",
+    toolsMenu: "Tools",
+    chatsMenu: "Chats",
+    noChats: "No conversations yet",
+    madhhab: "Madhhab",
+    toolChat: "Chat",
+    toolQuran: "Quran",
+    toolRuqyah: "Ruqyah Audio",
+    toolQibla: "Qibla Finder",
+    toolZakat: "Zakat Calculator",
+    welcomeTitle: "Rukaya AI",
+    welcomeSub: "Your Islamic scholarly companion, grounded in authentic Quran & Sunnah",
+    suggest1: "What is the complete Ruqyah for removing evil eye?",
+    suggest2: "What are today's prayer times for my location?",
+    suggest3: "Explain Ayatul Kursi (2:255) with full tafsir",
+    suggest4: "What breaks Wudu according to the Hanafi school?",
+    suggest5: "How do I calculate my Zakat this year?",
+    suggest6: "What does the Prophet ﷺ say about patience (sabr)?",
+    placeholder: "Ask about Quran, Hadith, Fiqh, prayer times…",
+    disclaimer: "Rukaya AI can make mistakes. Always verify with qualified Islamic scholars.",
+    seeking: "Seeking knowledge…",
+    stop: "⏸ Stop",
+    readAloud: "🔊 Read aloud",
+    offline: "⚠️ Backend offline — please check connection",
+    retry: "Retry"
+  },
+  bn: {
+    app: "রুকাইয়াহ এআই",
+    sub: "ইসলামী সঙ্গী",
+    newChat: "নতুন চ্যাট",
+    toolsMenu: "টুলসমূহ",
+    chatsMenu: "চ্যাট লিস্ট",
+    noChats: "এখনো কোনো কথোপকথন নেই",
+    madhhab: "মাযহাব",
+    toolChat: "চ্যাট",
+    toolQuran: "কুরআন",
+    toolRuqyah: "রুকিয়াহ অডিও",
+    toolQibla: "কিবলা ফাইন্ডার",
+    toolZakat: "যাকাত ক্যালকুলেটর",
+    welcomeTitle: "রুকাইয়াহ এআই",
+    welcomeSub: "আপনার নির্ভরযোগ্য ইসলামী স্কলারলি সঙ্গী, যা কুরআন ও সুন্নাহ ভিত্তিক",
+    suggest1: "বদ নজর দূর করার সম্পূর্ণ রুকিয়াহ কি?",
+    suggest2: "আমার বর্তমান অবস্থানের জন্য আজকের নামাজের সময়সূচী কি?",
+    suggest3: "আয়াতুল কুরসীর সম্পূর্ণ তাফসীর করুন",
+    suggest4: "হানাফি মাযহাব অনুযায়ী কি কি কারণে ওযু ভঙ্গ হয়?",
+    suggest5: "আমি এই বছর আমার যাকাত কীভাবে হিসাব করব?",
+    suggest6: "ধৈর্য (সবর) সম্পর্কে রাসূল ﷺ কি বলেছেন?",
+    placeholder: "কুরআন, হাদিস, ফিকহ বা নামাজের সময় সম্পর্কে জিজ্ঞাসা করুন...",
+    disclaimer: "রুকাইয়াহ এআই ভুল করতে পারে। সর্বদা যোগ্য ইসলামী স্কলারদের দ্বারা যাচাই করুন।",
+    seeking: "জ্ঞান অন্বেষণ করা হচ্ছে…",
+    stop: "⏸ থামুন",
+    readAloud: "🔊 জোরে পড়ুন",
+    offline: "⚠️ সার্ভার অফলাইন — আপনার কানেকশন চেক করুন",
+    retry: "পুনরায় চেষ্টা করুন"
+  }
+};
+
 // ─── Sidebar ─────────────────────────────────────────────────
-function Sidebar({ sessions, activeSessionId, activeTool, madhhab, prayerTimes, onNewChat,
+function Sidebar({ sessions, activeSessionId, activeTool, madhhab, prayerTimes, lang, onLangChange, onNewChat,
   onSelectSession, onDeleteSession, onSelectTool, onMadhhabChange, onClose, isMobile }: {
   sessions: Session[]; activeSessionId: string | null; activeTool: Tool;
-  madhhab: string; prayerTimes: PrayerTimes | null;
+  madhhab: string; prayerTimes: PrayerTimes | null; lang: Lang; onLangChange: (l: Lang) => void;
   onNewChat: () => void; onSelectSession: (id: string) => void;
   onDeleteSession: (id: string) => void; onSelectTool: (t: Tool) => void;
   onMadhhabChange: (m: string) => void; onClose: () => void; isMobile: boolean;
 }) {
+  const dict = t[lang];
   const tools: { id: Tool; emoji: string; label: string }[] = [
-    { id: "ruqyah", emoji: "📖", label: "Ruqyah Audio"      },
-    { id: "qibla",  emoji: "🧭", label: "Qibla Finder"     },
-    { id: "zakat",  emoji: "⚖️", label: "Zakat Calculator" },
+    { id: "quran",  emoji: "📖", label: dict.toolQuran  },
+    { id: "ruqyah", emoji: "🎧", label: dict.toolRuqyah },
+    { id: "qibla",  emoji: "🧭", label: dict.toolQibla  },
+    { id: "zakat",  emoji: "⚖️", label: dict.toolZakat  },
   ];
   const nav = (cb: () => void) => { cb(); if (isMobile) onClose(); };
 
   return (
-    <aside className="flex flex-col h-full w-72 bg-[#0c1220] text-[#c8b99a] border-r border-[rgba(212,168,67,0.12)] islamic-pattern">
-      {/* Brand */}
-      <div className="flex items-center justify-between px-4 py-5 border-b border-[rgba(212,168,67,0.12)] bg-[#0a0f1a]/80">
+    <aside className="flex flex-col h-full w-72 bg-surface text-primary border-r border-slate-200 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-100 islamic-pattern">
+      {/* Brand & Lang Toggle */}
+      <div className="flex items-center justify-between px-4 py-5 border-b border-slate-100 dark:border-slate-800 bg-surface/90 dark:bg-slate-900/90 backdrop-blur-sm">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-400 to-yellow-600 flex items-center justify-center text-sm font-bold text-[#0a0f1a] shadow-lg gold-glow font-arabic">
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-sm font-bold text-white shadow-lg shadow-emerald-500/20 font-arabic">
             ر
           </div>
           <div>
-            <p className="font-bold text-[#f5f0e8] text-sm leading-none">Rukaya AI</p>
-            <p className="text-[10px] text-[#7a6a50] mt-0.5 tracking-wide">Islamic Companion</p>
+            <p className="font-bold text-slate-900 dark:text-white text-sm leading-none">{dict.app}</p>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 tracking-wide">{dict.sub}</p>
           </div>
         </div>
-        {isMobile && (
-          <button onClick={onClose} className="text-[#7a6a50] hover:text-[#c8b99a] p-1">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+        <div className="flex items-center gap-2">
+          {/* Language Toggle */}
+          <button 
+            onClick={() => onLangChange(lang === "en" ? "bn" : "en")}
+            className="flex items-center justify-center h-7 px-2 text-xs font-medium rounded bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 transition"
+          >
+            {lang === "en" ? "বাংলা" : "EN"}
           </button>
-        )}
+          
+          {isMobile && (
+            <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 p-1">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* New Chat */}
       <div className="p-3">
         <button onClick={() => nav(onNewChat)}
-          className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 text-sm font-medium transition-all duration-200">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          New Chat
+          className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20 dark:hover:bg-emerald-500/20 text-sm font-semibold transition-all duration-200">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+          {dict.newChat}
         </button>
       </div>
 
       {/* Tools */}
       <div className="px-3 pb-2">
-        <p className="text-[10px] font-semibold text-[#5a4a30] uppercase tracking-widest mb-1.5 px-1">Tools</p>
+        <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5 px-1">{dict.toolsMenu}</p>
         {tools.map(t => (
           <button key={t.id} onClick={() => nav(() => onSelectTool(t.id))}
-            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm mb-0.5 transition-all duration-200 ${
+            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm mb-0.5 transition-all duration-200 font-medium ${
               activeTool === t.id && activeSessionId === null
-                ? "bg-amber-500/15 text-amber-300 border border-amber-500/20"
-                : "text-[#9a8a6a] hover:bg-white/5 hover:text-[#c8b99a]"
+                ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300"
+                : "text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-white/5"
             }`}>
             <span className="text-base w-5 text-center">{t.emoji}</span>
             {t.label}
@@ -87,136 +160,55 @@ function Sidebar({ sessions, activeSessionId, activeTool, madhhab, prayerTimes, 
         ))}
       </div>
 
-      <div className="h-px bg-[rgba(212,168,67,0.1)] mx-3 my-1" />
+      <div className="h-px bg-slate-100 dark:bg-slate-800/50 mx-3 my-1" />
 
       {/* Chat History */}
       <div className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5 min-h-0">
-        <p className="text-[10px] font-semibold text-[#5a4a30] uppercase tracking-widest mb-1.5 px-1">Chats</p>
-        {sessions.length === 0 && <p className="text-xs text-[#5a4a30] text-center py-4">No conversations yet</p>}
+        <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5 px-1">{dict.chatsMenu}</p>
+        {sessions.length === 0 && <p className="text-xs text-slate-400 dark:text-slate-600 text-center py-4">{dict.noChats}</p>}
         {sessions.map(s => (
           <div key={s.id} onClick={() => nav(() => onSelectSession(s.id))}
             className={`group flex items-center gap-2 px-3 py-2 rounded-xl cursor-pointer transition-all duration-200 ${
               activeSessionId === s.id
-                ? "bg-amber-500/15 text-amber-300 border border-amber-500/20"
-                : "text-[#9a8a6a] hover:bg-white/5 hover:text-[#c8b99a]"
+                ? "bg-slate-100 text-slate-900 font-medium dark:bg-slate-800 dark:text-slate-200"
+                : "text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-white/5"
             }`}>
-            <svg className="w-3.5 h-3.5 flex-none opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-            </svg>
+            <svg className="w-3.5 h-3.5 flex-none opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
             <span className="flex-1 text-xs truncate">{s.title}</span>
             <button onClick={e => { e.stopPropagation(); onDeleteSession(s.id); }}
-              className="opacity-0 group-hover:opacity-100 text-[#5a4a30] hover:text-red-400 transition-all flex-none p-0.5 rounded">
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 transition-all flex-none p-0.5 rounded">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           </div>
         ))}
       </div>
 
       {/* Bottom: Prayer Times + Madhhab */}
-      <div className="border-t border-[rgba(212,168,67,0.12)] p-3 space-y-2 bg-[#0a0f1a]/50">
+      <div className="border-t border-slate-100 dark:border-slate-800 p-3 space-y-2 bg-slate-50 dark:bg-slate-900/50">
         {prayerTimes && (
-          <div className="bg-amber-500/5 rounded-xl p-2.5 space-y-1 border border-amber-500/10">
-            <p className="text-[10px] text-amber-600/80 font-medium">{prayerTimes.hijri_date}</p>
+          <div className="bg-emerald-50 dark:bg-emerald-900/10 rounded-xl p-2.5 space-y-2 border border-emerald-100/50 dark:border-emerald-900/30 shadow-sm">
+            <p className="text-[10px] text-emerald-700 dark:text-emerald-500/80 font-bold">{prayerTimes.hijri_date}</p>
             <div className="grid grid-cols-3 gap-1 text-[10px]">
               {[["Fajr", prayerTimes.fajr],["Dhuhr", prayerTimes.dhuhr],["Asr", prayerTimes.asr],
                 ["Maghrib", prayerTimes.maghrib],["Isha", prayerTimes.isha],["Sunrise", prayerTimes.sunrise]
-              ].map(([n, t]) => (
+              ].map(([n, tVal]) => (
                 <div key={n} className="text-center">
-                  <p className="text-[#5a4a30]">{n}</p>
-                  <p className="text-amber-400 font-medium">{t}</p>
+                  <p className="text-slate-500 dark:text-slate-500">{n}</p>
+                  <p className="text-emerald-700 dark:text-emerald-400 font-semibold">{tVal}</p>
                 </div>
               ))}
             </div>
           </div>
         )}
         <div className="flex items-center gap-2">
-          <span className="text-xs text-[#7a6a50] flex-none">Madhhab:</span>
+          <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-500 uppercase tracking-wide flex-none px-1">{dict.madhhab}</span>
           <select value={madhhab} onChange={e => onMadhhabChange(e.target.value)}
-            className="flex-1 bg-[#0a0f1a] border border-amber-500/20 text-[#c8b99a] text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-amber-400/50">
+            className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-emerald-400/50 shadow-sm">
             {MADHHABS.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
         </div>
       </div>
     </aside>
-  );
-}
-
-// ─── Assistant Message ────────────────────────────────────────
-function AssistantMessage({ msg, onSpeak }: { msg: Message; onSpeak: (text: string, id: string) => void }) {
-  return (
-    <div className="flex gap-3 group">
-      <div className="flex-none w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-yellow-600 flex items-center justify-center text-[#0a0f1a] text-xs font-bold shadow-md mt-0.5 flex-shrink-0 font-arabic">
-        ر
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-xs font-semibold text-amber-400 mb-1.5">Rukaya AI</p>
-        <div className="text-[#e8dcc8] text-[15px] leading-7 whitespace-pre-wrap">
-          {msg.content || (
-            <span className="flex items-center gap-1.5 text-[#7a6a50]">
-              <span className="flex gap-1">
-                {[0, 0.15, 0.3].map(d => (
-                  <span key={d} className="w-1.5 h-1.5 bg-amber-500/60 rounded-full animate-bounce" style={{ animationDelay: `${d}s` }} />
-                ))}
-              </span>
-              <span className="text-sm">Seeking knowledge…</span>
-            </span>
-          )}
-        </div>
-        {msg.content && (
-          <button onClick={() => onSpeak(msg.content, msg.id)}
-            className={`mt-2 opacity-0 group-hover:opacity-100 flex items-center gap-1 text-xs px-2.5 py-1 rounded-full transition-all duration-200 ${
-              msg.isAudioPlaying ? "opacity-100 bg-amber-500/20 text-amber-400" : "bg-[#101828] text-[#7a6a50] hover:text-amber-400"
-            }`}>
-            {msg.isAudioPlaying ? "⏸ Stop" : "🔊 Read aloud"}
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ─── User Message ─────────────────────────────────────────────
-function UserMessage({ msg }: { msg: Message }) {
-  return (
-    <div className="flex justify-end">
-      <div className="max-w-[75%] bg-[#0f1e10] border border-[#14532d]/50 text-[#e8dcc8] rounded-2xl rounded-br-sm px-4 py-3 text-[15px] leading-relaxed whitespace-pre-wrap">
-        {msg.content}
-      </div>
-    </div>
-  );
-}
-
-// ─── Welcome Screen ───────────────────────────────────────────
-function WelcomeScreen({ onPrompt }: { onPrompt: (p: string) => void }) {
-  const prompts = [
-    "What is the complete Ruqyah for removing evil eye?",
-    "What are today's prayer times for my location?",
-    "Explain Ayatul Kursi (2:255) with full tafsir",
-    "What breaks Wudu according to the Hanafi school?",
-    "How do I calculate my Zakat this year?",
-    "What does the Prophet ﷺ say about patience (sabr)?",
-  ];
-  return (
-    <div className="flex flex-col items-center justify-center h-full px-4 pb-32 text-center">
-      <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-400 to-yellow-600 flex items-center justify-center text-4xl font-bold text-[#0a0f1a] shadow-2xl mb-4 gold-glow font-arabic">
-        ر
-      </div>
-      <h1 className="text-3xl font-bold text-[#f5f0e8] mb-2">Rukaya AI</h1>
-      <h2 className="text-lg font-bold text-amber-500/80 mb-6 font-arabic">بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيْم</h2>
-      <p className="text-[#7a6a50] text-sm mb-8 max-w-sm">
-        Your Islamic scholarly companion, grounded in authentic Quran & Sunnah
-      </p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full max-w-2xl">
-        {prompts.map(p => (
-          <button key={p} onClick={() => onPrompt(p)}
-            className="text-left text-sm text-[#9a8a6a] bg-[#0c1220] hover:bg-[#101828] border border-[rgba(212,168,67,0.12)] hover:border-amber-500/30 rounded-xl px-4 py-3 transition-all duration-200 hover:text-[#e8dcc8]">
-            {p}
-          </button>
-        ))}
-      </div>
-    </div>
   );
 }
 
@@ -232,6 +224,7 @@ export default function RukayaApp() {
   const [location, setLocation]       = useState<{ latitude: number; longitude: number } | null>(null);
   const [error, setError]             = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [lang, setLang]               = useState<Lang>("en");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef    = useRef<HTMLTextAreaElement>(null);
@@ -239,16 +232,25 @@ export default function RukayaApp() {
 
   const activeSession = sessions.find(s => s.id === activeSessionId) ?? null;
   const messages: Message[] = activeSession?.messages ?? [];
+  const dict = t[lang];
 
   // ── Persistence ──
   useEffect(() => {
-    try { const r = localStorage.getItem(SESSIONS_KEY); if (r) setSessions(JSON.parse(r)); } catch {}
+    try { 
+      const r = localStorage.getItem(SESSIONS_KEY); if (r) setSessions(JSON.parse(r)); 
+      const l = localStorage.getItem(LANG_KEY) as Lang; if (l && (l==="en"||l==="bn")) setLang(l);
+    } catch {}
   }, []);
 
   const saveSessions = useCallback((updated: Session[]) => {
     setSessions(updated);
     try { localStorage.setItem(SESSIONS_KEY, JSON.stringify(updated)); } catch {}
   }, []);
+
+  const handleLangChange = (newLang: Lang) => {
+    setLang(newLang);
+    try { localStorage.setItem(LANG_KEY, newLang); } catch {}
+  };
 
   // ── Location ──
   useEffect(() => {
@@ -263,7 +265,7 @@ export default function RukayaApp() {
 
   // ── Session management ──
   const newChat = useCallback(() => {
-    setActiveSessionId(null); setActiveTool("chat"); setError(null); textareaRef.current?.focus();
+    setActiveSessionId(null); setActiveTool("chat"); setError(null); setTimeout(() => textareaRef.current?.focus(), 100);
   }, []);
 
   const selectSession = (id: string) => { setActiveSessionId(id); setActiveTool("chat"); setError(null); };
@@ -279,7 +281,12 @@ export default function RukayaApp() {
     window.speechSynthesis.cancel();
     const u  = new SpeechSynthesisUtterance(text);
     const av = window.speechSynthesis.getVoices().find(v => v.lang.startsWith("ar"));
+    // Try to find Bangla voice if language is BN and text isn't purely Arabic
+    const bv = window.speechSynthesis.getVoices().find(v => v.lang.startsWith("bn"));
+    
     if (av && /[\u0600-\u06FF]/.test(text)) u.voice = av;
+    else if (bv && lang === "bn") u.voice = bv;
+
     u.onstart = () => setSessions(prev => prev.map(s => ({ ...s, messages: s.messages.map(m => m.id === id ? { ...m, isAudioPlaying: true }  : m) })));
     u.onend   = () => setSessions(prev => prev.map(s => ({ ...s, messages: s.messages.map(m => m.id === id ? { ...m, isAudioPlaying: false } : m) })));
     window.speechSynthesis.speak(u);
@@ -316,7 +323,11 @@ export default function RukayaApp() {
       const res = await fetch("/api/chat/stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: currentMessages.map(m => ({ role: m.role, content: m.content })), madhhab, timezone, local_datetime: new Date().toISOString(), latitude: location?.latitude ?? null, longitude: location?.longitude ?? null }),
+        body: JSON.stringify({ 
+          messages: currentMessages.map(m => ({ role: m.role, content: m.content })), 
+          madhhab, timezone, language: lang, // pass language back to server!
+          local_datetime: new Date().toISOString(), latitude: location?.latitude ?? null, longitude: location?.longitude ?? null 
+        }),
       });
       if (!res.ok || !res.body) throw new Error(`Server error ${res.status}`);
 
@@ -351,20 +362,20 @@ export default function RukayaApp() {
     } finally {
       setIsLoading(false);
     }
-  }, [input, isLoading, activeSessionId, messages, madhhab, timezone, location]);
+  }, [input, isLoading, activeSessionId, messages, madhhab, timezone, location, lang]); // lang added to dependencies
 
   const showChat = activeTool === "chat";
 
   return (
-    <div className="flex h-[100dvh] bg-[#080c16] text-[#f5f0e8] overflow-hidden">
+    <div className="flex h-[100dvh] bg-base text-primary overflow-hidden selection:bg-emerald-200 dark:selection:bg-emerald-900">
 
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 flex lg:hidden">
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
-          <div className="relative z-10 h-full">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
+          <div className="relative z-10 h-full shadow-2xl">
             <Sidebar sessions={sessions} activeSessionId={activeSessionId} activeTool={activeTool}
-              madhhab={madhhab} prayerTimes={prayerTimes} onNewChat={newChat}
+              madhhab={madhhab} prayerTimes={prayerTimes} lang={lang} onLangChange={handleLangChange} onNewChat={newChat}
               onSelectSession={selectSession} onDeleteSession={deleteSession}
               onSelectTool={setActiveTool} onMadhhabChange={setMadhhab}
               onClose={() => setSidebarOpen(false)} isMobile={true} />
@@ -375,77 +386,124 @@ export default function RukayaApp() {
       {/* Desktop Sidebar */}
       <div className="hidden lg:flex h-full flex-none">
         <Sidebar sessions={sessions} activeSessionId={activeSessionId} activeTool={activeTool}
-          madhhab={madhhab} prayerTimes={prayerTimes} onNewChat={newChat}
+          madhhab={madhhab} prayerTimes={prayerTimes} lang={lang} onLangChange={handleLangChange} onNewChat={newChat}
           onSelectSession={selectSession} onDeleteSession={deleteSession}
           onSelectTool={setActiveTool} onMadhhabChange={setMadhhab}
           onClose={() => {}} isMobile={false} />
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 bg-[#080c16]">
+      <div className="flex-1 flex flex-col min-w-0 bg-base dark:bg-slate-950 relative">
 
         {/* Mobile Top Bar */}
-        <div className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-[rgba(212,168,67,0.12)] bg-[#0c1220]">
-          <button onClick={() => setSidebarOpen(true)} className="text-[#7a6a50] hover:text-[#c8b99a] p-1">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
+        <div className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-800 bg-surface/90 dark:bg-slate-900/90 backdrop-blur-md sticky top-0 z-20 shadow-sm">
+          <button onClick={() => setSidebarOpen(true)} className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 p-1">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
           </button>
-          <p className="text-sm font-semibold text-[#c8b99a] truncate max-w-[160px]">
-            {showChat ? (activeSession?.title ?? "New Chat") : activeTool === "ruqyah" ? "Ruqyah Audio" : activeTool === "qibla" ? "Qibla Finder" : "Zakat Calculator"}
+          <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[160px]">
+            {showChat ? (activeSession?.title ?? dict.newChat) : activeTool === "ruqyah" ? dict.toolRuqyah : activeTool === "qibla" ? dict.toolQibla : activeTool === "quran" ? dict.toolQuran : dict.toolZakat}
           </p>
-          <button onClick={newChat} className="text-[#7a6a50] hover:text-amber-400 p-1">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
+          <button onClick={newChat} className="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 p-1">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
           </button>
         </div>
 
         {/* Error Banner */}
         {error && (
-          <div className="flex-none mx-4 mt-3 px-4 py-3 bg-red-950/40 border border-red-800/30 rounded-xl flex items-center justify-between text-sm">
-            <span className="text-red-300">
+          <div className="flex-none mx-4 mt-3 px-4 py-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/30 rounded-xl flex items-center justify-between text-sm shadow-sm z-10 relative">
+            <span className="text-red-700 dark:text-red-300">
               {error.includes("502") || error.toLowerCase().includes("connect")
-                ? "⚠️ Backend offline — run: python main.py"
+                ? dict.offline
                 : `⚠️ ${error}`}
             </span>
-            <button onClick={() => { setError(null); handleSend(); }} className="ml-3 text-xs text-amber-400 hover:text-amber-300 underline flex-none">
-              Retry
+            <button onClick={() => { setError(null); handleSend(); }} className="ml-3 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline flex-none">
+              {dict.retry}
             </button>
           </div>
         )}
 
         {/* Tool Views */}
         {!showChat && (
-          <div className="flex-1 overflow-y-auto pb-16 lg:pb-0">
-            {activeTool === "ruqyah" && <RuqyahAudio />}
-            {activeTool === "qibla"  && <QiblaFinder />}
-            {activeTool === "zakat"  && <ZakatCalculator />}
+          <div className="flex-1 overflow-y-auto pb-20 lg:pb-0 scroll-smooth">
+            {activeTool === "quran" && <QuranReader lang={lang} />}
+            {activeTool === "ruqyah" && <RuqyahAudio lang={lang} />}
+            {activeTool === "qibla"  && <QiblaFinder lang={lang} />}
+            {activeTool === "zakat"  && <ZakatCalculator lang={lang} />}
           </div>
         )}
 
         {/* Chat View */}
         {showChat && (
           <>
-            <div className="flex-1 overflow-y-auto pb-16 lg:pb-0">
+            <div className="flex-1 overflow-y-auto pb-24 lg:pb-0 scroll-smooth">
               {messages.length === 0 ? (
-                <WelcomeScreen onPrompt={p => { setInput(p); setTimeout(() => handleSend(p), 0); }} />
+                <div className="flex flex-col items-center justify-center h-full px-4 pb-32 text-center pt-10">
+                  <div className="w-20 h-20 rounded-2xl bg-emerald-600 flex items-center justify-center text-4xl font-bold text-white shadow-xl shadow-emerald-600/20 mb-6 font-arabic ring-4 ring-emerald-50 dark:ring-emerald-900/30">
+                    ر
+                  </div>
+                  <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100 mb-2 font-arabic z-10">{dict.welcomeTitle}</h1>
+                  <h2 className="text-xl font-bold text-emerald-700 dark:text-emerald-400 mb-6 font-arabic">بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيْم</h2>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm mb-10 max-w-sm">
+                    {dict.welcomeSub}
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-2xl px-2">
+                    {[dict.suggest1, dict.suggest2, dict.suggest3, dict.suggest4, dict.suggest5, dict.suggest6].map((p, i) => (
+                      <button key={i} onClick={() => { setInput(p); setTimeout(() => handleSend(p), 0); }}
+                        className="text-left text-sm text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800/80 hover:bg-emerald-50 hover:border-emerald-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700/50 rounded-xl px-4 py-3 transition-all duration-200 shadow-sm hover:shadow">
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               ) : (
                 <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-8">
                   {messages.map(msg =>
                     msg.role === "assistant"
-                      ? <AssistantMessage key={msg.id} msg={msg} onSpeak={speakText} />
-                      : <UserMessage key={msg.id} msg={msg} />
+                      ? (
+                        <div key={msg.id} className="flex gap-4 group">
+                          <div className="flex-none w-9 h-9 rounded-full bg-emerald-600 flex items-center justify-center text-white text-xs font-bold shadow-md mt-0.5 font-arabic">ر</div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 mb-1.5 uppercase tracking-wide">Rukaya AI</p>
+                            <div className="text-slate-800 dark:text-slate-200 text-[16px] leading-relaxed whitespace-pre-wrap">
+                              {msg.content || (
+                                <span className="flex items-center gap-2 text-emerald-500">
+                                  <span className="flex gap-1.5">
+                                    {[0, 0.15, 0.3].map(d => (
+                                      <span key={d} className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: `${d}s` }} />
+                                    ))}
+                                  </span>
+                                  <span className="text-sm font-medium italic">{dict.seeking}</span>
+                                </span>
+                              )}
+                            </div>
+                            {msg.content && (
+                              <button onClick={() => speakText(msg.content, msg.id)}
+                                className={`mt-3 opacity-0 group-hover:opacity-100 flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full transition-all duration-200 ${
+                                  msg.isAudioPlaying ? "opacity-100 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400" : "bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+                                }`}>
+                                {msg.isAudioPlaying ? dict.stop : dict.readAloud}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )
+                      : (
+                        <div key={msg.id} className="flex justify-end">
+                          <div className="max-w-[80%] bg-slate-900 border border-slate-800 text-white dark:bg-emerald-900/30 dark:border-emerald-800/50 rounded-2xl rounded-br-sm px-5 py-3.5 text-[15px] leading-relaxed whitespace-pre-wrap shadow-sm">
+                            {msg.content}
+                          </div>
+                        </div>
+                      )
                   )}
-                  <div ref={messagesEndRef} />
+                  <div ref={messagesEndRef} className="h-4" />
                 </div>
               )}
             </div>
 
             {/* Input Bar */}
-            <div className="flex-none px-3 sm:px-4 pb-[calc(env(safe-area-inset-bottom)+76px)] lg:pb-6 pt-3">
+            <div className="flex-none px-3 sm:px-4 pb-[calc(env(safe-area-inset-bottom)+76px)] lg:pb-6 pt-2 bg-gradient-to-t from-base via-base to-transparent dark:from-slate-950 dark:via-slate-950 absolute bottom-0 inset-x-0 lg:static z-20">
               <div className="max-w-3xl mx-auto">
-                <div className="relative flex items-end gap-2 bg-[#0c1220] border border-[rgba(212,168,67,0.2)] rounded-2xl px-4 py-3 shadow-2xl focus-within:border-amber-500/40 transition-colors duration-200">
+                <div className="relative flex items-end gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 shadow-lg focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 transition-all duration-200">
                   <textarea
                     ref={textareaRef}
                     value={input}
@@ -455,24 +513,22 @@ export default function RukayaApp() {
                       e.target.style.height = Math.min(e.target.scrollHeight, 180) + "px";
                     }}
                     onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-                    placeholder="Ask about Ruqyah, Hadith, Fiqh, prayer times…"
+                    placeholder={dict.placeholder}
                     rows={1}
-                    className="flex-1 bg-transparent text-[#e8dcc8] text-sm placeholder-[#5a4a30] focus:outline-none resize-none min-h-[24px] max-h-[180px] leading-6"
+                    className="flex-1 bg-transparent text-slate-900 dark:text-slate-100 text-[15px] placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none resize-none min-h-[24px] max-h-[180px] leading-relaxed py-0.5"
                     disabled={isLoading}
                   />
                   <button onClick={() => handleSend()} disabled={isLoading || !input.trim()}
-                    className="flex-none w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 disabled:opacity-30 text-[#0a0f1a] font-bold flex items-center justify-center transition-all duration-200 shadow-lg active:scale-95 flex-shrink-0">
+                    className="flex-none w-10 h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold flex items-center justify-center transition-all duration-200 shadow-md active:scale-95 flex-shrink-0">
                     {isLoading ? (
-                      <div className="w-4 h-4 border-2 border-[#0a0f1a]/30 border-t-[#0a0f1a] rounded-full animate-spin" />
+                      <div className="w-5 h-5 border-2 border-slate-200/30 border-t-white rounded-full animate-spin" />
                     ) : (
-                      <svg className="w-4 h-4 -rotate-45 translate-x-px" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M3.478 2.404a.75.75 0 00-.926.941l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.404z" />
-                      </svg>
+                      <svg className="w-4 h-4 -rotate-45" fill="currentColor" viewBox="0 0 24 24"><path d="M3.478 2.404a.75.75 0 00-.926.941l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.404z" /></svg>
                     )}
                   </button>
                 </div>
-                <p className="text-center text-[11px] text-[#4a3a20] mt-2 hidden sm:block">
-                  Rukaya AI can make mistakes. Always verify with qualified Islamic scholars.
+                <p className="text-center text-xs font-medium text-slate-400 dark:text-slate-500 mt-2 hidden sm:block">
+                  {dict.disclaimer}
                 </p>
               </div>
             </div>
@@ -480,21 +536,22 @@ export default function RukayaApp() {
         )}
 
         {/* Mobile Bottom Nav */}
-        <nav className="lg:hidden fixed bottom-0 inset-x-0 bg-[#0c1220]/95 backdrop-blur-md border-t border-[rgba(212,168,67,0.12)] z-30"
+        <nav className="lg:hidden fixed bottom-0 inset-x-0 bg-white/90 dark:bg-slate-900/95 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]"
           style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
           <div className="flex">
             {([
-              { id: "chat",   emoji: "💬", label: "Chat"   },
-              { id: "ruqyah", emoji: "📖", label: "Ruqyah" },
-              { id: "qibla",  emoji: "🧭", label: "Qibla"  },
-              { id: "zakat",  emoji: "⚖️", label: "Zakat"  },
+              { id: "chat",   emoji: "💬", label: dict.toolChat   },
+              { id: "quran",  emoji: "📖", label: dict.toolQuran  },
+              { id: "ruqyah", emoji: "🎧", label: dict.toolRuqyah },
+              { id: "qibla",  emoji: "🧭", label: dict.toolQibla  },
+              { id: "zakat",  emoji: "⚖️", label: dict.toolZakat  },
             ] as { id: Tool; emoji: string; label: string }[]).map(tab => (
               <button key={tab.id} onClick={() => setActiveTool(tab.id)}
-                className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors duration-200 ${
-                  activeTool === tab.id ? "text-amber-400" : "text-[#5a4a30] hover:text-[#9a8a6a]"
+                className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 text-[10px] font-bold transition-colors duration-200 ${
+                  activeTool === tab.id ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
                 }`}>
-                <span className="text-lg leading-none">{tab.emoji}</span>
-                <span>{tab.label}</span>
+                <span className="text-xl leading-none mb-0.5">{tab.emoji}</span>
+                <span className="tracking-wide uppercase scale-90 origin-top">{tab.label}</span>
               </button>
             ))}
           </div>

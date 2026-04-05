@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { messages, madhhab = 'Hanafi', latitude, longitude, local_datetime, timezone } = body;
+  const { messages, madhhab = 'Hanafi', latitude, longitude, local_datetime, timezone, language } = body;
 
   // Fetch contextual data in parallel
   const lastUserMsg = [...messages].reverse().find((m: { role: string }) => m.role === 'user')?.content ?? '';
@@ -37,9 +37,14 @@ export async function POST(req: NextRequest) {
   }
   if (quranData) contextParts.push(`Live Quranic reference:${quranData}`);
 
+  const langDirective = language === 'bn' 
+    ? '\n\nIMPORTANT: The user has requested to speak in BENGALI (বাংলা). You MUST reply completely in BENGALI. Translate all explanations, meanings, rulings, and context into Bengali. You may retain Arabic script for verses/hadith, but you MUST provide Bengali Translation and ideally Bengali Transliteration (উচ্চারণ) as well.' 
+    : '';
+
   const system =
     SYSTEM_PROMPT +
     `\n\nUser's Madhhab: ${madhhab}. Default all Fiqh answers to this school.` +
+    langDirective +
     (contextParts.length ? `\n\n[Real-Time Context]\n${contextParts.join('\n')}` : '');
 
   const groqMessages = [

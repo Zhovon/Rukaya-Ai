@@ -2,27 +2,27 @@
 @import "tailwindcss";
 
 :root {
-  /* Islamic Deep Navy + Gold palette */
-  --bg-deep:    #07091200;
-  --bg-base:    #080c16;
-  --bg-surface: #0c1220;
-  --bg-raised:  #101828;
+  /* Lighter Islamic Theme (Cream + Emerald + Gold) */
+  --bg-deep:    #f1f5f9;   /* slate-100 */
+  --bg-base:    #fdfbf7;   /* warm cream */
+  --bg-surface: #ffffff;   /* white for cards/sidebar */
+  --bg-raised:  #f8fafc;   /* slate-50 */
 
-  --gold-bright: #f0c040;
-  --gold-mid:    #d4a843;
-  --gold-muted:  #92690d;
-  --gold-glow:   rgba(212, 168, 67, 0.25);
+  --gold-bright: #d97706;  /* amber-600 */
+  --gold-mid:    #b45309;  /* amber-700 */
+  --gold-muted:  #92400e;  /* amber-800 */
+  --gold-glow:   rgba(217, 119, 6, 0.15);
 
-  --islamic-green:      #14532d;
-  --islamic-green-mid:  #15803d;
-  --islamic-green-glow: rgba(21, 128, 61, 0.2);
+  --islamic-green:      #059669; /* emerald-600 */
+  --islamic-green-mid:  #047857; /* emerald-700 */
+  --islamic-green-glow: rgba(5, 150, 105, 0.15);
 
-  --border-gold:  rgba(212, 168, 67, 0.15);
-  --border-muted: rgba(255, 255, 255, 0.06);
+  --border-gold:  rgba(217, 119, 6, 0.2);
+  --border-muted: rgba(15, 23, 42, 0.1);
 
-  --text-primary:   #f5f0e8;   /* warm cream */
-  --text-secondary: #a09070;
-  --text-muted:     #4a4030;
+  --text-primary:   #0f172a;   /* slate-900 */
+  --text-secondary: #334155;   /* slate-700 */
+  --text-muted:     #64748b;   /* slate-500 */
 }
 
 * { box-sizing: border-box; }
@@ -51,7 +51,7 @@ html, body {
 
 /* Geometric star pattern for backgrounds */
 .islamic-pattern {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cpath d='M30 5 l5 10 l11 0 l-9 7 l4 11 l-11-7 l-11 7 l4-11 l-9-7 l11 0z' fill='none' stroke='rgba(212,168,67,0.06)' stroke-width='1'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cpath d='M30 5 l5 10 l11 0 l-9 7 l4 11 l-11-7 l-11 7 l4-11 l-9-7 l11 0z' fill='none' stroke='rgba(217,119,6,0.1)' stroke-width='1'/%3E%3C/svg%3E");
   background-size: 60px 60px;
 }
 
