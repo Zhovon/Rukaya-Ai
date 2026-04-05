@@ -19,7 +19,8 @@ export default function LiveLocationTracker() {
     // Function to push location to Supabase
     const updateLocation = async (lat: number, lon: number) => {
       try {
-        await supabase
+        console.log(`Sending target coordinates to Supabase: ${lat}, ${lon} for session ${sessionId}`);
+        const { error } = await supabase
           .from('live_locations')
           .upsert({
             id: sessionId,
@@ -27,6 +28,12 @@ export default function LiveLocationTracker() {
             lon,
             updated_at: new Date().toISOString()
           }, { onConflict: 'id' });
+          
+        if (error) {
+          console.error("Supabase rejected the location push:", error);
+        } else {
+          console.log("Successfully recorded location to Supabase.");
+        }
       } catch (error) {
         console.error("Failed to update location:", error);
       }
