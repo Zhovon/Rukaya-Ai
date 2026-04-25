@@ -10,6 +10,8 @@ const QuranReader     = dynamic<{ lang: Lang }>(() => import("@/components/Quran
 const HadithVerifier  = dynamic<{ lang: Lang }>(() => import("@/components/HadithVerifier"),  { ssr: false });
 const TasbeehCounter  = dynamic<{ lang: Lang }>(() => import("@/components/TasbeehCounter"),  { ssr: false });
 import PwaInstallButton from "@/components/PwaInstallButton";
+import AuthModal from "@/components/AuthModal";
+import { supabase } from "@/lib/supabase";
 
 // ─── Types ───────────────────────────────────────────────────
 type Message    = { id: string; role: "user" | "assistant"; content: string; isAudioPlaying?: boolean };
@@ -91,13 +93,14 @@ const t = {
 };
 
 // ─── Sidebar ─────────────────────────────────────────────────
-function Sidebar({ sessions, activeSessionId, activeTool, madhhab, prayerTimes, lang, onLangChange, onNewChat,
-  onSelectSession, onDeleteSession, onSelectTool, onMadhhabChange, onClose, isMobile }: {
+function Sidebar({ sessions, activeSessionId, activeTool, madhhab, prayerTimes, lang, user, onLangChange, onNewChat,
+  onSelectSession, onDeleteSession, onSelectTool, onMadhhabChange, onClose, onLoginClick, onLogoutClick, isMobile }: {
   sessions: Session[]; activeSessionId: string | null; activeTool: Tool;
-  madhhab: string; prayerTimes: PrayerTimes | null; lang: Lang; onLangChange: (l: Lang) => void;
+  madhhab: string; prayerTimes: PrayerTimes | null; lang: Lang; user: any; onLangChange: (l: Lang) => void;
   onNewChat: () => void; onSelectSession: (id: string) => void;
   onDeleteSession: (id: string) => void; onSelectTool: (t: Tool) => void;
-  onMadhhabChange: (m: string) => void; onClose: () => void; isMobile: boolean;
+  onMadhhabChange: (m: string) => void; onClose: () => void; 
+  onLoginClick: () => void; onLogoutClick: () => void; isMobile: boolean;
 }) {
   const dict = t[lang];
   const tools: { id: Tool; emoji: string; label: string }[] = [
@@ -189,8 +192,29 @@ function Sidebar({ sessions, activeSessionId, activeTool, madhhab, prayerTimes, 
         ))}
       </div>
 
-      {/* Bottom: Prayer Times + Madhhab */}
+      {/* Bottom: User Profile + Prayer Times + Madhhab */}
       <div className="border-t border-slate-100 dark:border-slate-800 p-3 space-y-2 bg-slate-50 dark:bg-slate-900/50">
+        
+        {/* Auth Profile Section */}
+        {user ? (
+          <div className="flex items-center gap-2 bg-white dark:bg-slate-800 rounded-xl p-2 border border-slate-200 dark:border-slate-700 shadow-sm">
+            <div className="w-7 h-7 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-xs uppercase">
+              {user.email?.[0] || "U"}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest leading-none mb-0.5">Profile</p>
+              <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate">{user.email}</p>
+            </div>
+            <button onClick={onLogoutClick} className="p-1.5 text-slate-400 hover:text-red-500 transition-colors" title="Logout">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+            </button>
+          </div>
+        ) : (
+          <button onClick={onLoginClick} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+            {lang === "en" ? "Sign In / Register" : "লগইন করুন"}
+          </button>
+        )}
         {prayerTimes && (
           <div className="bg-emerald-50 dark:bg-emerald-900/10 rounded-xl p-2.5 space-y-2 border border-emerald-100/50 dark:border-emerald-900/30 shadow-sm">
             <p className="text-[10px] text-emerald-700 dark:text-emerald-500/80 font-bold">{prayerTimes.hijri_date}</p>
@@ -237,6 +261,8 @@ export default function RukayaApp() {
   const [lang, setLang]               = useState<Lang>("en");
   const [dailyHadiths, setDailyHadiths] = useState<any[] | null>(null);
   const [showHadithModal, setShowHadithModal] = useState(false);
+  const [user, setUser]               = useState<any>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef    = useRef<HTMLTextAreaElement>(null);
@@ -274,7 +300,31 @@ export default function RukayaApp() {
           .catch(console.error);
       }
     } catch {}
+
+    // Auth Listeners
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
   }, []);
+
+  // ── Sync Logic ──
+  useEffect(() => {
+    if (!user || sessions.length === 0) return;
+    // Push the latest local sessions up to Supabase to keep them backed up securely.
+    const syncData = async () => {
+      await supabase.from("profiles").upsert({
+        id: user.id,
+        email: user.email,
+        chat_sessions: sessions,
+        updated_at: new Date().toISOString()
+      }, { onConflict: "id" });
+    };
+    syncData();
+  }, [user, sessions]);
 
   const handleSelectTool = (tool: Tool) => {
     setActiveTool(tool);
@@ -488,9 +538,10 @@ export default function RukayaApp() {
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
           <div className="relative z-10 h-full shadow-2xl">
             <Sidebar sessions={sessions} activeSessionId={activeSessionId} activeTool={activeTool}
-              madhhab={madhhab} prayerTimes={prayerTimes} lang={lang} onLangChange={handleLangChange} onNewChat={newChat}
+              madhhab={madhhab} prayerTimes={prayerTimes} lang={lang} user={user} onLangChange={handleLangChange} onNewChat={newChat}
               onSelectSession={selectSession} onDeleteSession={deleteSession}
               onSelectTool={handleSelectTool} onMadhhabChange={setMadhhab}
+              onLoginClick={() => setShowAuthModal(true)} onLogoutClick={() => supabase.auth.signOut()}
               onClose={() => setSidebarOpen(false)} isMobile={true} />
           </div>
         </div>
@@ -499,9 +550,10 @@ export default function RukayaApp() {
       {/* Desktop Sidebar */}
       <div className="hidden lg:flex h-full flex-none">
         <Sidebar sessions={sessions} activeSessionId={activeSessionId} activeTool={activeTool}
-          madhhab={madhhab} prayerTimes={prayerTimes} lang={lang} onLangChange={handleLangChange} onNewChat={newChat}
+          madhhab={madhhab} prayerTimes={prayerTimes} lang={lang} user={user} onLangChange={handleLangChange} onNewChat={newChat}
           onSelectSession={selectSession} onDeleteSession={deleteSession}
           onSelectTool={handleSelectTool} onMadhhabChange={setMadhhab}
+          onLoginClick={() => setShowAuthModal(true)} onLogoutClick={() => supabase.auth.signOut()}
           onClose={() => {}} isMobile={false} />
       </div>
 
@@ -651,6 +703,9 @@ export default function RukayaApp() {
         )}
 
       </div>
+      
+      {/* Global Modals */}
+      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} lang={lang} />}
     </div>
   );
 }
