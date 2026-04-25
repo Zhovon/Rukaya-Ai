@@ -322,6 +322,11 @@ export default function RukayaApp() {
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
+      
+      if (session && window.location.hash.includes('access_token')) {
+        window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
+      }
+
       if (event === "PASSWORD_RECOVERY") {
         setShowResetModal(true);
       }
