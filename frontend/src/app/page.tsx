@@ -11,6 +11,8 @@ const HadithVerifier  = dynamic<{ lang: Lang }>(() => import("@/components/Hadit
 const TasbeehCounter  = dynamic<{ lang: Lang }>(() => import("@/components/TasbeehCounter"),  { ssr: false });
 import PwaInstallButton from "@/components/PwaInstallButton";
 import AuthModal from "@/components/AuthModal";
+import ResetPasswordModal from "@/components/ResetPasswordModal";
+import ProfileSettingsModal from "@/components/ProfileSettingsModal";
 import { supabase } from "@/lib/supabase";
 
 // ─── Types ───────────────────────────────────────────────────
@@ -94,13 +96,13 @@ const t = {
 
 // ─── Sidebar ─────────────────────────────────────────────────
 function Sidebar({ sessions, activeSessionId, activeTool, madhhab, prayerTimes, lang, user, onLangChange, onNewChat,
-  onSelectSession, onDeleteSession, onSelectTool, onMadhhabChange, onClose, onLoginClick, onLogoutClick, isMobile }: {
+  onSelectSession, onDeleteSession, onSelectTool, onMadhhabChange, onClose, onLoginClick, onLogoutClick, onProfileClick, isMobile }: {
   sessions: Session[]; activeSessionId: string | null; activeTool: Tool;
   madhhab: string; prayerTimes: PrayerTimes | null; lang: Lang; user: any; onLangChange: (l: Lang) => void;
   onNewChat: () => void; onSelectSession: (id: string) => void;
   onDeleteSession: (id: string) => void; onSelectTool: (t: Tool) => void;
   onMadhhabChange: (m: string) => void; onClose: () => void; 
-  onLoginClick: () => void; onLogoutClick: () => void; isMobile: boolean;
+  onLoginClick: () => void; onLogoutClick: () => void; onProfileClick: () => void; isMobile: boolean;
 }) {
   const dict = t[lang];
   const tools: { id: Tool; emoji: string; label: string }[] = [
@@ -197,15 +199,15 @@ function Sidebar({ sessions, activeSessionId, activeTool, madhhab, prayerTimes, 
         
         {/* Auth Profile Section */}
         {user ? (
-          <div className="flex items-center gap-2 bg-white dark:bg-slate-800 rounded-xl p-2 border border-slate-200 dark:border-slate-700 shadow-sm">
-            <div className="w-7 h-7 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-xs uppercase">
+          <div onClick={onProfileClick} className="flex items-center gap-2 bg-white dark:bg-slate-800 rounded-xl p-2 border border-slate-200 dark:border-slate-700 shadow-sm cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+            <div className="w-7 h-7 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-xs uppercase flex-none">
               {user.email?.[0] || "U"}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest leading-none mb-0.5">Profile</p>
               <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate">{user.email}</p>
             </div>
-            <button onClick={onLogoutClick} className="p-1.5 text-slate-400 hover:text-red-500 transition-colors" title="Logout">
+            <button onClick={(e) => { e.stopPropagation(); onLogoutClick(); }} className="p-1.5 text-slate-400 hover:text-red-500 transition-colors flex-none" title="Logout">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
             </button>
           </div>
@@ -263,6 +265,8 @@ export default function RukayaApp() {
   const [showHadithModal, setShowHadithModal] = useState(false);
   const [user, setUser]               = useState<any>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef    = useRef<HTMLTextAreaElement>(null);
@@ -301,12 +305,22 @@ export default function RukayaApp() {
       }
     } catch {}
 
+    // Parse URL for recovery type
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.get("type") === "recovery") {
+      setShowResetModal(true);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
     // Auth Listeners
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
     });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
+      if (event === "PASSWORD_RECOVERY") {
+        setShowResetModal(true);
+      }
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -541,7 +555,7 @@ export default function RukayaApp() {
               madhhab={madhhab} prayerTimes={prayerTimes} lang={lang} user={user} onLangChange={handleLangChange} onNewChat={newChat}
               onSelectSession={selectSession} onDeleteSession={deleteSession}
               onSelectTool={handleSelectTool} onMadhhabChange={setMadhhab}
-              onLoginClick={() => setShowAuthModal(true)} onLogoutClick={() => supabase.auth.signOut()}
+              onLoginClick={() => setShowAuthModal(true)} onLogoutClick={() => supabase.auth.signOut()} onProfileClick={() => setShowProfileModal(true)}
               onClose={() => setSidebarOpen(false)} isMobile={true} />
           </div>
         </div>
@@ -553,7 +567,7 @@ export default function RukayaApp() {
           madhhab={madhhab} prayerTimes={prayerTimes} lang={lang} user={user} onLangChange={handleLangChange} onNewChat={newChat}
           onSelectSession={selectSession} onDeleteSession={deleteSession}
           onSelectTool={handleSelectTool} onMadhhabChange={setMadhhab}
-          onLoginClick={() => setShowAuthModal(true)} onLogoutClick={() => supabase.auth.signOut()}
+          onLoginClick={() => setShowAuthModal(true)} onLogoutClick={() => supabase.auth.signOut()} onProfileClick={() => setShowProfileModal(true)}
           onClose={() => {}} isMobile={false} />
       </div>
 
@@ -706,6 +720,8 @@ export default function RukayaApp() {
       
       {/* Global Modals */}
       {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} lang={lang} />}
+      {showResetModal && <ResetPasswordModal onClose={() => setShowResetModal(false)} lang={lang} />}
+      {showProfileModal && <ProfileSettingsModal onClose={() => setShowProfileModal(false)} user={user} lang={lang} />}
     </div>
   );
 }
