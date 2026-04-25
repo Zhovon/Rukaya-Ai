@@ -315,6 +315,10 @@ export default function RukayaApp() {
     // Auth Listeners
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
+      if (session && window.location.hash.includes('access_token')) {
+        // Clean up the ugly Supabase hash from the URL bar after successful OAuth login
+        window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
+      }
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
